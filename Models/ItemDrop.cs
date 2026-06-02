@@ -46,5 +46,9 @@ namespace DCUOTracker.Models
         public int          Quantity  { get; set; }
         public string       Character { get; set; } = "";
         public string       Session   { get; set; } = "";
+        public bool     IsOwn     { get; set; } = true;
     }
 }
+
+
+

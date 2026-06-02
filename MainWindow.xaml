@@ -2,332 +2,1202 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="DCUO Assistant"
-        Height="620" Width="820"
-        MinHeight="500" MinWidth="700"
+        Height="700" Width="1100"
+        MinHeight="600" MinWidth="900"
         WindowStyle="SingleBorderWindow"
-        Background="#1a1a2e">
+        Background="#050A14">
 
     <Window.Resources>
-        <Style x:Key="HeaderText" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#00d4ff"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-        </Style>
-        <Style x:Key="ValueText" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#ffffff"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
-        </Style>
+
+        <!-- Colors -->
+        <SolidColorBrush x:Key="BgDeep"      Color="#050A14"/>
+        <SolidColorBrush x:Key="BgCard"      Color="#0A1628"/>
+        <SolidColorBrush x:Key="BgCardHover" Color="#0F1F3A"/>
+        <SolidColorBrush x:Key="Cyan"        Color="#00D4FF"/>
+        <SolidColorBrush x:Key="CyanDim"     Color="#004F5E"/>
+        <SolidColorBrush x:Key="Gold"        Color="#FFD700"/>
+        <SolidColorBrush x:Key="Orange"      Color="#FF6B35"/>
+        <SolidColorBrush x:Key="Green"       Color="#00FF88"/>
+        <SolidColorBrush x:Key="TextPrimary" Color="#E8F4FF"/>
+        <SolidColorBrush x:Key="TextDim"     Color="#3A5A7A"/>
+        <SolidColorBrush x:Key="TextMid"     Color="#6B8FAF"/>
+
+        <!-- Glow effect for cyan elements -->
+        <DropShadowEffect x:Key="CyanGlow" Color="#00D4FF" BlurRadius="12" ShadowDepth="0" Opacity="0.7"/>
+        <DropShadowEffect x:Key="GoldGlow" Color="#FFD700" BlurRadius="10" ShadowDepth="0" Opacity="0.6"/>
+        <DropShadowEffect x:Key="GreenGlow" Color="#00FF88" BlurRadius="10" ShadowDepth="0" Opacity="0.5"/>
+
+        <!-- Stat card border style -->
         <Style x:Key="StatCard" TargetType="Border">
-            <Setter Property="Background" Value="#16213e"/>
-            <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="Padding" Value="12"/>
-            <Setter Property="Margin" Value="4"/>
-        </Style>
-        <Style x:Key="ActionButton" TargetType="Button">
-            <Setter Property="Background" Value="#0f3460"/>
-            <Setter Property="Foreground" Value="#00d4ff"/>
-            <Setter Property="BorderBrush" Value="#00d4ff"/>
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#0D1E35" Offset="0"/>
+                        <GradientStop Color="#071220" Offset="1"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="BorderBrush" Value="#0D2A3E"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="10,5"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="14,10"/>
+            <Setter Property="Margin" Value="3"/>
         </Style>
+
+        <!-- Cyan accent card (top border glowing) -->
+        <Style x:Key="AccentCard" TargetType="Border" BasedOn="{StaticResource StatCard}">
+            <Setter Property="BorderBrush" Value="#00D4FF"/>
+            <Setter Property="BorderThickness" Value="0,1,0,0"/>
+            <Setter Property="Effect" Value="{StaticResource CyanGlow}"/>
+        </Style>
+
+        <!-- Label style small caps -->
+        <Style x:Key="StatLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#5A7A9A"/>
+            <Setter Property="FontFamily" Value="Consolas"/>
+            <Setter Property="FontSize"     Value="9"/>
+            <Setter Property="FontWeight"   Value="Bold"/>
+            <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
+        </Style>
+
+        <!-- Big number style -->
+        <Style x:Key="StatValue" TargetType="TextBlock">
+            <Setter Property="Foreground"   Value="{StaticResource TextPrimary}"/>
+            <Setter Property="FontFamily"   Value="Consolas"/>
+            <Setter Property="FontSize"     Value="26"/>
+            <Setter Property="FontWeight"   Value="Bold"/>
+            <Setter Property="Margin"       Value="0,2,0,0"/>
+        </Style>
+
+        <!-- Sub value style -->
+        <Style x:Key="StatSub" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#5A7A9A"/>
+            <Setter Property="FontFamily" Value="Consolas"/>
+            <Setter Property="FontSize"     Value="9"/>
+            <Setter Property="Margin"       Value="0,2,0,0"/>
+        </Style>
+
+        <!-- Tier row label -->
+        <Style x:Key="TierLabel" TargetType="TextBlock">
+            <Setter Property="FontFamily"  Value="Consolas"/>
+            <Setter Property="FontSize"    Value="9"/>
+            <Setter Property="FontWeight"  Value="Bold"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <!-- Tier row value -->
+        <Style x:Key="TierValue" TargetType="TextBlock">
+            <Setter Property="FontFamily"  Value="Consolas"/>
+            <Setter Property="FontSize"    Value="12"/>
+            <Setter Property="FontWeight"  Value="Bold"/>
+            <Setter Property="TextAlignment" Value="Right"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <!-- Action button -->
+        <Style x:Key="ActionButton" TargetType="Button">
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#0A1E35" Offset="0"/>
+                        <GradientStop Color="#061428" Offset="1"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Foreground"      Value="#00D4FF"/>
+            <Setter Property="BorderBrush"     Value="#00D4FF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontFamily"      Value="Consolas"/>
+            <Setter Property="FontSize"        Value="10"/>
+            <Setter Property="FontWeight"      Value="Bold"/>
+            <Setter Property="Padding"         Value="10,5"/>
+            <Setter Property="Cursor"          Value="Hand"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+        </Style>
+
+        <!-- Tab style -->
+        <Style TargetType="TabControl">
+            <Setter Property="Background"     Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding"        Value="0"/>
+        </Style>
+        <Style TargetType="TabItem">
+            <Setter Property="Background"     Value="Transparent"/>
+            <Setter Property="Foreground"     Value="{StaticResource TextDim}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontFamily"     Value="Consolas"/>
+            <Setter Property="FontSize"       Value="11"/>
+            <Setter Property="FontWeight"     Value="Bold"/>
+            <Setter Property="Padding"        Value="16,8"/>
+            <Setter Property="Margin"         Value="0,0,4,0"/>
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Foreground" Value="#00D4FF"/>
+                    <Setter Property="Background">
+                        <Setter.Value>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                <GradientStop Color="#0D2A3E" Offset="0"/>
+                                <GradientStop Color="#050A14" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Setter.Value>
+                    </Setter>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- DataGrid dark style -->
+        <Style TargetType="DataGrid">
+            <Setter Property="Background"            Value="Transparent"/>
+            <Setter Property="BorderThickness"       Value="0"/>
+            <Setter Property="RowBackground"         Value="#080F1C"/>
+            <Setter Property="AlternatingRowBackground" Value="#0A1525"/>
+            <Setter Property="Foreground"            Value="#6B8FAF"/>
+            <Setter Property="FontFamily"            Value="Consolas"/>
+            <Setter Property="FontSize"              Value="11"/>
+            <Setter Property="GridLinesVisibility"   Value="Horizontal"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="#0D2236"/>
+            <Setter Property="CanUserResizeRows"     Value="False"/>
+            <Setter Property="IsReadOnly"            Value="True"/>
+            <Setter Property="SelectionMode"         Value="Single"/>
+            <Setter Property="HeadersVisibility"     Value="Column"/>
+        </Style>
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#070E1A"/>
+            <Setter Property="Foreground" Value="#00D4FF"/>
+            <Setter Property="FontFamily" Value="Consolas"/>
+            <Setter Property="FontSize"   Value="9"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Padding"    Value="8,4"/>
+            <Setter Property="BorderBrush" Value="#0D2236"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        </Style>
+
     </Window.Resources>
 
-    <Grid Margin="12">
+    <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="52"/>   <!-- Header -->
+            <RowDefinition Height="*"/>    <!-- Content -->
         </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,12">
-            <Image Source="pack://application:,,,/dcuo-qol.ico"
-                   Width="28" Height="28" VerticalAlignment="Center" Margin="0,0,8,0"
-                   RenderOptions.BitmapScalingMode="HighQuality"/>
-            <TextBlock Text="DCUO ASSISTANT" FontSize="20" FontWeight="Bold"
-                       Foreground="#00d4ff" FontFamily="Segoe UI" VerticalAlignment="Center"/>
-            <TextBlock x:Name="StatusText" Text="● WATCHING" FontSize="11"
-                       Foreground="#00ff88" Margin="16,0,0,0" VerticalAlignment="Center"/>
-        </StackPanel>
+        <!-- ══════════════════════════════════════════════════
+             HEADER BAR
+        ══════════════════════════════════════════════════ -->
+        <Border Grid.Row="0">
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                    <GradientStop Color="#07101E" Offset="0"/>
+                    <GradientStop Color="#0A1628" Offset="0.5"/>
+                    <GradientStop Color="#07101E" Offset="1"/>
+                </LinearGradientBrush>
+            </Border.Background>
+            <Border.BorderBrush>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                    <GradientStop Color="Transparent" Offset="0"/>
+                    <GradientStop Color="#00D4FF" Offset="0.3"/>
+                    <GradientStop Color="#00D4FF" Offset="0.7"/>
+                    <GradientStop Color="Transparent" Offset="1"/>
+                </LinearGradientBrush>
+            </Border.BorderBrush>
+            <Border.BorderThickness>0,0,0,1</Border.BorderThickness>
 
-        <!-- Session Stats Row -->
-        <UniformGrid Grid.Row="1" Columns="5" Margin="0,0,0,8">
-            <Border Style="{StaticResource StatCard}">
-                <StackPanel>
-                    <TextBlock Text="SESSION NTH DROPS" Style="{StaticResource HeaderText}" FontSize="10"/>
-                    <TextBlock x:Name="SessionDropCount" Text="0" Style="{StaticResource ValueText}"
-                               FontSize="28" FontWeight="Bold"/>
-                </StackPanel>
-            </Border>
-            <Border Style="{StaticResource StatCard}">
-                <StackPanel>
-                    <TextBlock Text="SESSION NTH XP" Style="{StaticResource HeaderText}" FontSize="10"/>
-                    <TextBlock x:Name="SessionXp" Text="0" Style="{StaticResource ValueText}"
-                               FontSize="28" FontWeight="Bold" Foreground="#ffd700"/>
-                </StackPanel>
-            </Border>
-            <Border Style="{StaticResource StatCard}">
-                <StackPanel>
-                    <TextBlock Text="ALL TIME NTH DROPS" Style="{StaticResource HeaderText}" FontSize="10"/>
-                    <TextBlock x:Name="AllTimeDropCount" Text="0" Style="{StaticResource ValueText}"
-                               FontSize="28" FontWeight="Bold"/>
-                </StackPanel>
-            </Border>
-            <Border Style="{StaticResource StatCard}">
-                <StackPanel>
-                    <TextBlock Text="ALL TIME NTH XP" Style="{StaticResource HeaderText}" FontSize="10"/>
-                    <TextBlock x:Name="AllTimeXp" Text="0" Style="{StaticResource ValueText}"
-                               FontSize="28" FontWeight="Bold" Foreground="#ffd700"/>
-                </StackPanel>
-            </Border>
-            <Border Style="{StaticResource StatCard}">
-                <StackPanel>
-                    <TextBlock Text="LAST DROP" Style="{StaticResource HeaderText}" FontSize="10"/>
-                    <TextBlock x:Name="LastDropText" Text="—" Style="{StaticResource ValueText}"
-                               FontSize="13" FontWeight="Bold" Foreground="#ff6b35" TextWrapping="Wrap"/>
-                </StackPanel>
-            </Border>
-        </UniformGrid>
+            <Grid Margin="16,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
 
-        <!-- Source Marks / Ally Favors / Exobytes Row -->
-        <UniformGrid Grid.Row="2" Columns="5" Margin="0,0,0,8">
-            <Border Style="{StaticResource StatCard}">
-                <StackPanel>
-                    <TextBlock Text="SOURCE MARKS" Style="{StaticResource HeaderText}" FontSize="10"/>
-                    <TextBlock x:Name="SessionSourceMarks" Text="0" Style="{StaticResource ValueText}"
-                               FontSize="24" FontWeight="Bold" Foreground="#a78bfa"/>
-                    <TextBlock x:Name="AllTimeSourceMarks" Text="0 all time" Foreground="#666" FontSize="10"/>
-                </StackPanel>
-            </Border>
-            <Border Style="{StaticResource StatCard}">
-                <StackPanel>
-                    <TextBlock Text="ALLY FAVORS" Style="{StaticResource HeaderText}" FontSize="10"/>
-                    <TextBlock x:Name="SessionAllyFavors" Text="0" Style="{StaticResource ValueText}"
-                               FontSize="24" FontWeight="Bold" Foreground="#34d399"/>
-                    <TextBlock x:Name="AllTimeAllyFavors" Text="0 all time" Foreground="#666" FontSize="10"/>
-                </StackPanel>
-            </Border>
-            <Border Style="{StaticResource StatCard}">
-                <StackPanel>
-                    <TextBlock Text="EXOBYTES" Style="{StaticResource HeaderText}" FontSize="10" Margin="0,0,0,3"/>
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Standard"  Foreground="#888888" FontSize="9" FontFamily="Segoe UI" VerticalAlignment="Center"/>
-                        <TextBlock Grid.Row="0" Grid.Column="1" x:Name="ExoStandard"  Text="0" Foreground="#888888" FontSize="12" FontWeight="Bold" FontFamily="Consolas" TextAlignment="Right"/>
-
-                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Flawed"    Foreground="#f87171" FontSize="9" FontFamily="Segoe UI" VerticalAlignment="Center"/>
-                        <TextBlock Grid.Row="1" Grid.Column="1" x:Name="ExoFlawed"    Text="0" Foreground="#f87171" FontSize="12" FontWeight="Bold" FontFamily="Consolas" TextAlignment="Right"/>
-
-                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Solid"     Foreground="#4fc3f7" FontSize="9" FontFamily="Segoe UI" VerticalAlignment="Center"/>
-                        <TextBlock Grid.Row="2" Grid.Column="1" x:Name="ExoSolid"     Text="0" Foreground="#4fc3f7" FontSize="12" FontWeight="Bold" FontFamily="Consolas" TextAlignment="Right"/>
-
-                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Pristine"  Foreground="#34d399" FontSize="9" FontFamily="Segoe UI" VerticalAlignment="Center"/>
-                        <TextBlock Grid.Row="3" Grid.Column="1" x:Name="ExoPristine"  Text="0" Foreground="#34d399" FontSize="12" FontWeight="Bold" FontFamily="Consolas" TextAlignment="Right"/>
-
-                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Flawless"  Foreground="#c084fc" FontSize="9" FontFamily="Segoe UI" VerticalAlignment="Center"/>
-                        <TextBlock Grid.Row="4" Grid.Column="1" x:Name="ExoFlawless"  Text="0" Foreground="#c084fc" FontSize="12" FontWeight="Bold" FontFamily="Consolas" TextAlignment="Right"/>
-
-                        <TextBlock Grid.Row="5" Grid.Column="0" Text="Timeless"  Foreground="#fbbf24" FontSize="9" FontFamily="Segoe UI" VerticalAlignment="Center"/>
-                        <TextBlock Grid.Row="5" Grid.Column="1" x:Name="ExoTimeless"  Text="0" Foreground="#fbbf24" FontSize="12" FontWeight="Bold" FontFamily="Consolas" TextAlignment="Right"/>
-
-                        <TextBlock Grid.Row="6" Grid.Column="0" Text="Perfected" Foreground="#00d4ff" FontSize="9" FontFamily="Segoe UI" VerticalAlignment="Center"/>
-                        <TextBlock Grid.Row="6" Grid.Column="1" x:Name="ExoPerfected" Text="0" Foreground="#00d4ff" FontSize="12" FontWeight="Bold" FontFamily="Consolas" TextAlignment="Right"/>
-
-                        <Border Grid.Row="7" Grid.ColumnSpan="2" BorderBrush="#333" BorderThickness="0,1,0,0" Margin="0,2,0,1"/>
-                        <TextBlock Grid.Row="7" Grid.Column="0" Text="Total"     Foreground="#555"   FontSize="9" FontFamily="Segoe UI" VerticalAlignment="Center"/>
-                        <TextBlock Grid.Row="7" Grid.Column="1" x:Name="ExoTotal"     Text="0" Foreground="#aaaaaa" FontSize="12" FontWeight="Bold" FontFamily="Consolas" TextAlignment="Right"/>
-                    </Grid>
-                    <TextBlock x:Name="AllTimeExobytes" Text="0 all time" Foreground="#555" FontSize="9" Margin="0,2,0,0"/>
-                </StackPanel>
-            </Border>
-            <Border Style="{StaticResource StatCard}">
-                <StackPanel>
-                    <TextBlock Text="LAST ITEM" Style="{StaticResource HeaderText}" FontSize="10"/>
-                    <TextBlock x:Name="LastItemText" Text="—" Style="{StaticResource ValueText}"
-                               FontSize="11" FontWeight="Bold" Foreground="#fb923c" TextWrapping="Wrap"/>
-                </StackPanel>
-            </Border>
-                    <Border Style="{StaticResource StatCard}">
-                <StackPanel>
-                    <TextBlock Text="ALLIANCE" Style="{StaticResource HeaderText}" FontSize="10" Margin="0,0,0,4"/>
-                    <!-- Rare = Blue, Epic = Purple, Legendary = Yellow -->
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Rare" Foreground="#4fc3f7" FontSize="10" FontFamily="Segoe UI" VerticalAlignment="Center" Width="60"/>
-                        <TextBlock Grid.Row="0" Grid.Column="1" x:Name="AllianceRare" Text="0" Foreground="#4fc3f7" FontSize="16" FontWeight="Bold" FontFamily="Consolas"/>
-                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Epic" Foreground="#c084fc" FontSize="10" FontFamily="Segoe UI" VerticalAlignment="Center" Width="60"/>
-                        <TextBlock Grid.Row="1" Grid.Column="1" x:Name="AllianceEpic" Text="0" Foreground="#c084fc" FontSize="16" FontWeight="Bold" FontFamily="Consolas"/>
-                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Legendary" Foreground="#fbbf24" FontSize="10" FontFamily="Segoe UI" VerticalAlignment="Center" Width="60"/>
-                        <TextBlock Grid.Row="2" Grid.Column="1" x:Name="AllianceLegendary" Text="0" Foreground="#fbbf24" FontSize="16" FontWeight="Bold" FontFamily="Consolas"/>
-                    </Grid>
-                    <TextBlock x:Name="AllTimeAlliance" Text="0 all time" Foreground="#666" FontSize="10" Margin="0,2,0,0"/>
-                </StackPanel>
-            </Border>        </UniformGrid>
-
-        <!-- Metal Type Breakdown -->
-        <Border Grid.Row="3" Background="#16213e" CornerRadius="8" Padding="12" Margin="4,0,4,8">
-            <StackPanel>
-                <TextBlock Text="SESSION BREAKDOWN BY TYPE" Style="{StaticResource HeaderText}"
-                           FontSize="10" Margin="0,0,0,8"/>
-                <UniformGrid Columns="6">
-                    <StackPanel Margin="4,0">
-                        <TextBlock Text="RAW" Foreground="#888" FontSize="9" HorizontalAlignment="Center"/>
-                        <TextBlock x:Name="CountRaw" Text="0" Foreground="#aaaaaa"
-                                   FontSize="16" FontWeight="Bold" HorizontalAlignment="Center"/>
+                <!-- Logo + Title -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Image Source="pack://application:,,,/dcuo-qol.ico"
+                           Width="24" Height="24" Margin="0,0,10,0"
+                           RenderOptions.BitmapScalingMode="HighQuality"
+                           Effect="{StaticResource CyanGlow}"/>
+                    <TextBlock Text="DCUO ASSISTANT"
+                               Foreground="#00D4FF"
+                               FontFamily="Consolas" FontSize="16" FontWeight="Bold"
+                               VerticalAlignment="Center"
+                               Effect="{StaticResource CyanGlow}"/>
+                    <Border Width="1" Background="#0D2A3E" Margin="16,8"/>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <!-- Pulse dot -->
+                        <Ellipse Width="6" Height="6" Fill="#00FF88" Margin="0,0,6,0"
+                                 VerticalAlignment="Center">
+                            <Ellipse.Effect>
+                                <DropShadowEffect Color="#00FF88" BlurRadius="8" ShadowDepth="0"/>
+                            </Ellipse.Effect>
+                        </Ellipse>
+                        <TextBlock x:Name="StatusText" Text="WATCHING"
+                                   Foreground="#00FF88" FontFamily="Consolas"
+                                   FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
                     </StackPanel>
-                    <StackPanel Margin="4,0">
-                        <TextBlock Text="EXTRACTED" Foreground="#4fc3f7" FontSize="9" HorizontalAlignment="Center"/>
-                        <TextBlock x:Name="CountExtracted" Text="0" Foreground="#4fc3f7"
-                                   FontSize="16" FontWeight="Bold" HorizontalAlignment="Center"/>
-                    </StackPanel>
-                    <StackPanel Margin="4,0">
-                        <TextBlock Text="TREATED" Foreground="#81c784" FontSize="9" HorizontalAlignment="Center"/>
-                        <TextBlock x:Name="CountTreated" Text="0" Foreground="#81c784"
-                                   FontSize="16" FontWeight="Bold" HorizontalAlignment="Center"/>
-                    </StackPanel>
-                    <StackPanel Margin="4,0">
-                        <TextBlock Text="PROCESSED" Foreground="#ffb74d" FontSize="9" HorizontalAlignment="Center"/>
-                        <TextBlock x:Name="CountProcessed" Text="0" Foreground="#ffb74d"
-                                   FontSize="16" FontWeight="Bold" HorizontalAlignment="Center"/>
-                    </StackPanel>
-                    <StackPanel Margin="4,0">
-                        <TextBlock Text="REFINED" Foreground="#f06292" FontSize="9" HorizontalAlignment="Center"/>
-                        <TextBlock x:Name="CountRefined" Text="0" Foreground="#f06292"
-                                   FontSize="16" FontWeight="Bold" HorizontalAlignment="Center"/>
-                    </StackPanel>
-                    <StackPanel Margin="4,0">
-                        <TextBlock Text="PURIFIED" Foreground="#ffd700" FontSize="9" HorizontalAlignment="Center"/>
-                        <TextBlock x:Name="CountPurified" Text="0" Foreground="#ffd700"
-                                   FontSize="16" FontWeight="Bold" HorizontalAlignment="Center"/>
-                    </StackPanel>
-                </UniformGrid>
-            </StackPanel>
-        </Border>
+                </StackPanel>
 
-        <!-- Drop Log -->
-        <Border Grid.Row="4" Background="#16213e" CornerRadius="8" Margin="4,0,4,8">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-                <TextBlock Grid.Row="0" Text="DROP LOG" Style="{StaticResource HeaderText}"
-                           FontSize="10" Margin="12,8"/>
-                <DataGrid x:Name="DropGrid" Grid.Row="1"
-                          Background="Transparent" BorderThickness="0"
-                          RowBackground="#1a1a2e" AlternatingRowBackground="#16213e"
-                          Foreground="#cccccc" FontFamily="Consolas" FontSize="12"
-                          AutoGenerateColumns="False" IsReadOnly="True"
-                          GridLinesVisibility="Horizontal"
-                          HorizontalGridLinesBrush="#0f3460"
-                          CanUserResizeRows="False">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="Time"      Binding="{Binding Timestamp, StringFormat=HH:mm:ss}" Width="70"/>
-                        <DataGridTextColumn Header="Character" Binding="{Binding Character}"  Width="120"/>
-                        <DataGridTextColumn Header="Type"      Binding="{Binding MetalType}"  Width="100"/>
-                        <DataGridTextColumn Header="Qty"       Binding="{Binding Quantity}"   Width="50"/>
-                        <DataGridTextColumn Header="XP"        Binding="{Binding XpValue}"    Width="60"/>
-                    </DataGrid.Columns>
-                </DataGrid>
+                <!-- Right: config buttons + version -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,4,0">
+
+                    <!-- CHAT REGION — teal/cyan, matches Persist style -->
+                    <Button x:Name="SelectRegionBtn" Click="SelectRegion_Click"
+                            Background="Transparent" BorderThickness="0"
+                            Cursor="Hand" Margin="0,0,6,0" Padding="0"
+                            ToolTip="Calibrate chat input scan region">
+                        <Border CornerRadius="4" Padding="11,6">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                    <GradientStop Color="#081818" Offset="0"/>
+                                    <GradientStop Color="#040C0C" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <Border.BorderBrush>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                    <GradientStop Color="#22D3EE" Offset="0"/>
+                                    <GradientStop Color="#065A6A" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Border.BorderBrush>
+                            <Border.BorderThickness>0,1,0,0</Border.BorderThickness>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="◈" Foreground="#22D3EE" FontSize="14" FontWeight="Bold"
+                                           VerticalAlignment="Center" Margin="0,0,7,0">
+                                    <TextBlock.Effect>
+                                        <DropShadowEffect Color="#06B6D4" BlurRadius="8" ShadowDepth="0" Opacity="0.9"/>
+                                    </TextBlock.Effect>
+                                </TextBlock>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="CHAT REGION" Foreground="White"
+                                               FontFamily="Consolas" FontSize="11" FontWeight="Bold"/>
+                                    <TextBlock x:Name="RegionStatus" Text="NOT SET"
+                                               Foreground="#22D3EE" FontFamily="Consolas" FontSize="9" Opacity="0.6"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </Button>
+
+                    <!-- PARTY FRAME — bright purple, matches TOP style -->
+                    <Button x:Name="SelectPartyRegionBtn" Click="SelectPartyRegion_Click"
+                            Background="Transparent" BorderThickness="0"
+                            Cursor="Hand" Margin="0,0,12,0" Padding="0"
+                            ToolTip="Calibrate party frame scan region">
+                        <Border CornerRadius="4" Padding="11,6">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                    <GradientStop Color="#100A1E" Offset="0"/>
+                                    <GradientStop Color="#080612" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <Border.BorderBrush>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                    <GradientStop Color="#C084FC" Offset="0"/>
+                                    <GradientStop Color="#3D1A6A" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Border.BorderBrush>
+                            <Border.BorderThickness>0,1,0,0</Border.BorderThickness>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="◆" Foreground="#C084FC" FontSize="14" FontWeight="Bold"
+                                           VerticalAlignment="Center" Margin="0,0,7,0">
+                                    <TextBlock.Effect>
+                                        <DropShadowEffect Color="#A855F7" BlurRadius="8" ShadowDepth="0" Opacity="0.9"/>
+                                    </TextBlock.Effect>
+                                </TextBlock>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="PARTY FRAME" Foreground="White"
+                                               FontFamily="Consolas" FontSize="11" FontWeight="Bold"/>
+                                    <TextBlock Text="SET REGION" Foreground="White"
+                                               FontFamily="Consolas" FontSize="9" Opacity="0.5"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </Button>
+
+                    <Border Width="1" Background="#0D2236" Margin="0,8,12,8"/>
+
+                    <TextBlock x:Name="VersionLabel" Text="v1.0.0"
+                               Foreground="{StaticResource TextDim}"
+                               FontFamily="Consolas" FontSize="9" VerticalAlignment="Center"/>
+                </StackPanel>
             </Grid>
         </Border>
 
-        <!-- Chat Tools Row (inline preview + popout button) -->
-        <Grid Grid.Row="5" Margin="0,0,0,8">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
+        <!-- ══════════════════════════════════════════════════
+             MAIN CONTENT — TAB CONTROL
+        ══════════════════════════════════════════════════ -->
+        <!-- TabControl fills all remaining space — no wrapper that kills stretch -->
+        <TabControl x:Name="MainTabs" Grid.Row="1"
+                    Background="#07101E" BorderBrush="#0D2236" BorderThickness="0,1,0,0"
+                    Padding="0" TabStripPlacement="Top"
+                    VerticalContentAlignment="Stretch"
+                    HorizontalContentAlignment="Stretch"
+                    SelectionChanged="MainTabs_SelectionChanged">
 
-            <Border Grid.Column="0" Background="#16213e" CornerRadius="8" Padding="10,8" Margin="4,0,4,0">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" Text="CHAT" Foreground="#00d4ff" FontSize="10"
-                               FontWeight="Bold" FontFamily="Segoe UI" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                    <ProgressBar Grid.Column="1" x:Name="CharProgressBar"
-                                 Minimum="0" Maximum="60" Value="0"
-                                 Height="8" VerticalAlignment="Center"
-                                 Foreground="#00ff88" Background="#0f3460"/>
-                    <TextBlock Grid.Column="2" x:Name="CharCountLabel"
-                               Text="0 / 60" Foreground="#00ff88"
-                               FontSize="12" FontWeight="Bold" FontFamily="Consolas"
-                               VerticalAlignment="Center" Margin="10,0,0,0" Width="55"/>
-                    <!-- LFG inline -->
-                    <Border Grid.Column="3" x:Name="LfgPanel" Background="#0f3460" CornerRadius="6"
-                            Padding="8,2" Margin="8,0,0,0" Visibility="Collapsed">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="LFG" Foreground="#00d4ff" FontSize="9"
-                                       FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                            <TextBlock x:Name="LfgTimerLabel" Text="60s" Foreground="#00d4ff"
-                                       FontSize="11" FontWeight="Bold" FontFamily="Consolas"
-                                       VerticalAlignment="Center" Width="34"/>
-                        </StackPanel>
-                    </Border>
-                    <!-- Popout button -->
-                    <Button Grid.Column="4" Content="⬡" ToolTip="Pop out chat overlay"
-                            Style="{StaticResource ActionButton}" FontSize="12"
-                            Margin="8,0,0,0" Padding="6,2" Click="PopoutChat_Click"/>
-                </Grid>
-            </Border>
+            <!-- force content area to fill available space -->
+            <TabControl.Template>
+                <ControlTemplate TargetType="TabControl">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Border Grid.Row="0" Background="#07101E" BorderBrush="#0D2236" BorderThickness="0,0,0,1">
+                            <TabPanel x:Name="HeaderPanel" Margin="8,0" IsItemsHost="True"/>
+                        </Border>
+                        <Border Grid.Row="1" Background="#050A14">
+                            <ContentPresenter x:Name="PART_SelectedContentHost"
+                                              ContentSource="SelectedContent"
+                                              VerticalAlignment="Stretch"
+                                              HorizontalAlignment="Stretch"
+                                              Margin="0"/>
+                        </Border>
+                    </Grid>
+                </ControlTemplate>
+            </TabControl.Template>
 
-            <!-- Always On Top toggle -->
-            <Button Grid.Column="1" x:Name="AlwaysOnTopBtn" Content="📌 ON TOP"
-                    Style="{StaticResource ActionButton}" Margin="0,0,4,0"
-                    Click="AlwaysOnTop_Click"/>
-        </Grid>
+                        <!-- TRACKER TAB -->
+                        <TabItem Header="⚡  TRACKER" x:Name="TabTracker">
+                            <Grid Margin="0">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>   <!-- Nth stats row -->
+                                    <RowDefinition Height="Auto"/>   <!-- Item stats row -->
+                                    <RowDefinition Height="Auto"/>   <!-- Breakdown strip -->
+                                    <RowDefinition Height="*"/>      <!-- Drop log -->
+                                    <RowDefinition Height="Auto"/>   <!-- Bottom bar -->
+                                </Grid.RowDefinitions>
 
-        <!-- Bottom Controls -->
-        <StackPanel Grid.Row="6" Orientation="Horizontal" Margin="4,0">
-            <Button x:Name="ClearSessionBtn" Content="Clear Session" Style="{StaticResource ActionButton}"
-                    Margin="0,0,8,0" Click="ClearSession_Click"/>
-            <Button x:Name="ViewAllBtn" Content="View All Time" Style="{StaticResource ActionButton}"
-                    Margin="0,0,8,0" Click="ViewAll_Click"/>
-            <Button x:Name="SoundToggleBtn" Content="🔊 Sound ON" Style="{StaticResource ActionButton}"
-                    Margin="0,0,8,0" Click="SoundToggle_Click"/>
-            <Button x:Name="SelectRegionBtn" Content="🎯 Select Chat Region" Style="{StaticResource ActionButton}"
-                    Margin="0,0,8,0" Click="SelectRegion_Click"/>
-            <TextBlock x:Name="RegionStatus" Text="No region set" Foreground="#555" FontSize="10"
-                       VerticalAlignment="Center" Margin="0,0,8,0"/>
-            <TextBlock x:Name="LogPathText" Text="" Foreground="#555" FontSize="10"
-                       VerticalAlignment="Center" Margin="8,0,0,0"/>
-        </StackPanel>
+                                <!-- ── ROW 0: Nth Metal stats ── -->
+                                <Grid Grid.Row="0" Margin="8,10,8,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <Border Grid.Column="0" Style="{StaticResource AccentCard}">
+                                        <StackPanel>
+                                            <TextBlock Text="SESSION NTH DROPS" Style="{StaticResource StatLabel}"/>
+                                            <TextBlock x:Name="SessionDropCount" Text="0" Style="{StaticResource StatValue}"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Grid.Column="1" Style="{StaticResource AccentCard}">
+                                        <StackPanel>
+                                            <TextBlock Text="SESSION NTH XP" Style="{StaticResource StatLabel}"/>
+                                            <TextBlock x:Name="SessionXp" Text="0" Style="{StaticResource StatValue}" Foreground="{StaticResource Gold}"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Grid.Column="2" Style="{StaticResource AccentCard}">
+                                        <StackPanel>
+                                            <TextBlock Text="ALL TIME NTH DROPS" Style="{StaticResource StatLabel}"/>
+                                            <TextBlock x:Name="AllTimeDropCount" Text="0" Style="{StaticResource StatValue}"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Grid.Column="3" Style="{StaticResource AccentCard}">
+                                        <StackPanel>
+                                            <TextBlock Text="ALL TIME NTH XP" Style="{StaticResource StatLabel}"/>
+                                            <TextBlock x:Name="AllTimeXp" Text="0" Style="{StaticResource StatValue}" Foreground="{StaticResource Gold}"
+                                                       Effect="{StaticResource GoldGlow}"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Grid.Column="4" Style="{StaticResource StatCard}">
+                                        <StackPanel>
+                                            <TextBlock Text="LAST DROP" Style="{StaticResource StatLabel}"/>
+                                            <TextBlock x:Name="LastDropText" Text="—" Style="{StaticResource StatValue}"
+                                                       FontSize="14" Foreground="{StaticResource Orange}"
+                                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+
+                                <!-- ── ROW 1: Item stats ── -->
+                                <Grid Grid.Row="1" Margin="8,6,8,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="1.6*"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="1.2*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Source Marks -->
+                                    <Border Grid.Column="0" Style="{StaticResource StatCard}">
+                                        <StackPanel>
+                                            <TextBlock Text="SOURCE MARKS" Style="{StaticResource StatLabel}"/>
+                                            <TextBlock x:Name="SessionSourceMarks" Text="0" Style="{StaticResource StatValue}"
+                                                       FontSize="22" Foreground="#A78BFA"/>
+                                            <TextBlock x:Name="AllTimeSourceMarks" Text="0 all time" Style="{StaticResource StatSub}"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Ally Favors -->
+                                    <Border Grid.Column="1" Style="{StaticResource StatCard}">
+                                        <StackPanel>
+                                            <TextBlock Text="ALLY FAVORS" Style="{StaticResource StatLabel}"/>
+                                            <TextBlock x:Name="SessionAllyFavors" Text="0" Style="{StaticResource StatValue}"
+                                                       FontSize="22" Foreground="{StaticResource Green}"/>
+                                            <TextBlock x:Name="AllTimeAllyFavors" Text="0 all time" Style="{StaticResource StatSub}"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Exobytes — compact 2-col tier grid -->
+                                    <Border Grid.Column="2" Style="{StaticResource StatCard}" Padding="12,10">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="6"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            <TextBlock Grid.Row="0" Text="EXOBYTES" Style="{StaticResource StatLabel}"/>
+                                            <Grid Grid.Row="2">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="8"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <!-- Left column -->
+                                                <StackPanel Grid.Column="0">
+                                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <TextBlock Grid.Column="0" Text="Standard"  Foreground="#555" FontFamily="Consolas" FontSize="9"/>
+                                                        <TextBlock Grid.Column="1" x:Name="ExoStandard"  Text="0" Foreground="#888" FontFamily="Consolas" FontSize="11" FontWeight="Bold"/></Grid>
+                                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <TextBlock Grid.Column="0" Text="Flawed"    Foreground="#f87171" FontFamily="Consolas" FontSize="9"/>
+                                                        <TextBlock Grid.Column="1" x:Name="ExoFlawed"    Text="0" Foreground="#f87171" FontFamily="Consolas" FontSize="11" FontWeight="Bold"/></Grid>
+                                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <TextBlock Grid.Column="0" Text="Solid"     Foreground="#4fc3f7" FontFamily="Consolas" FontSize="9"/>
+                                                        <TextBlock Grid.Column="1" x:Name="ExoSolid"     Text="0" Foreground="#4fc3f7" FontFamily="Consolas" FontSize="11" FontWeight="Bold"/></Grid>
+                                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <TextBlock Grid.Column="0" Text="Pristine"  Foreground="#34d399" FontFamily="Consolas" FontSize="9"/>
+                                                        <TextBlock Grid.Column="1" x:Name="ExoPristine"  Text="0" Foreground="#34d399" FontFamily="Consolas" FontSize="11" FontWeight="Bold"/></Grid>
+                                                </StackPanel>
+                                                <!-- Right column -->
+                                                <StackPanel Grid.Column="2">
+                                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <TextBlock Grid.Column="0" Text="Flawless"  Foreground="#c084fc" FontFamily="Consolas" FontSize="9"/>
+                                                        <TextBlock Grid.Column="1" x:Name="ExoFlawless"  Text="0" Foreground="#c084fc" FontFamily="Consolas" FontSize="11" FontWeight="Bold"/></Grid>
+                                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <TextBlock Grid.Column="0" Text="Timeless"  Foreground="#fbbf24" FontFamily="Consolas" FontSize="9"/>
+                                                        <TextBlock Grid.Column="1" x:Name="ExoTimeless"  Text="0" Foreground="#fbbf24" FontFamily="Consolas" FontSize="11" FontWeight="Bold"/></Grid>
+                                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <TextBlock Grid.Column="0" Text="Perfected" Foreground="#00d4ff" FontFamily="Consolas" FontSize="9"/>
+                                                        <TextBlock Grid.Column="1" x:Name="ExoPerfected" Text="0" Foreground="#00d4ff" FontFamily="Consolas" FontSize="11" FontWeight="Bold"/></Grid>
+                                                    <Border BorderBrush="#0D2236" BorderThickness="0,1,0,0" Margin="0,2,0,0" Padding="0,2,0,0">
+                                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                            <TextBlock Grid.Column="0" Text="Total" Foreground="#444" FontFamily="Consolas" FontSize="9"/>
+                                                            <TextBlock Grid.Column="1" x:Name="ExoTotal" Text="0" Foreground="#6B8FAF" FontFamily="Consolas" FontSize="11" FontWeight="Bold"/></Grid>
+                                                    </Border>
+                                                </StackPanel>
+                                            </Grid>
+                                            <TextBlock x:Name="AllTimeExobytes" Text="0 all time"
+                                                       Style="{StaticResource StatSub}" Margin="0,4,0,0"
+                                                       Grid.Row="2" VerticalAlignment="Bottom"/>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Last Item -->
+                                    <Border Grid.Column="3" Style="{StaticResource StatCard}">
+                                        <StackPanel>
+                                            <TextBlock Text="LAST ITEM" Style="{StaticResource StatLabel}"/>
+                                            <TextBlock x:Name="LastItemText" Text="—"
+                                                       Foreground="{StaticResource Orange}"
+                                                       FontFamily="Consolas" FontSize="12"
+                                                       FontWeight="Bold" TextWrapping="Wrap"
+                                                       Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Alliance -->
+                                    <Border Grid.Column="4" Style="{StaticResource StatCard}" Padding="12,10">
+                                        <StackPanel>
+                                            <TextBlock Text="ALLIANCE" Style="{StaticResource StatLabel}" Margin="0,0,0,6"/>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+                                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Rare"      Foreground="#4fc3f7" FontFamily="Consolas" FontSize="9" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Row="0" Grid.Column="1" x:Name="AllianceRare"      Text="0" Foreground="#4fc3f7" FontFamily="Consolas" FontSize="13" FontWeight="Bold"/>
+                                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Epic"      Foreground="#c084fc" FontFamily="Consolas" FontSize="9" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Row="1" Grid.Column="1" x:Name="AllianceEpic"      Text="0" Foreground="#c084fc" FontFamily="Consolas" FontSize="13" FontWeight="Bold"/>
+                                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Legendary" Foreground="#fbbf24" FontFamily="Consolas" FontSize="9" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Row="2" Grid.Column="1" x:Name="AllianceLegendary" Text="0" Foreground="#fbbf24" FontFamily="Consolas" FontSize="13" FontWeight="Bold"/>
+                                            </Grid>
+                                            <TextBlock x:Name="AllTimeAlliance" Text="0 all time" Style="{StaticResource StatSub}" Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+
+                                <!-- ── ROW 2: Session breakdown strip ── -->
+                                <Border Grid.Row="2" Margin="8,6,8,0"
+                                        Background="#07101E" BorderBrush="#0D2236"
+                                        BorderThickness="1" CornerRadius="4" Padding="14,8">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="SESSION BREAKDOWN" Foreground="{StaticResource TextDim}"
+                                                   FontFamily="Consolas" FontSize="9" FontWeight="Bold"
+                                                   VerticalAlignment="Center" Margin="0,0,20,0"/>
+                                        <StackPanel Grid.Column="1" HorizontalAlignment="Center">
+                                            <TextBlock Text="RAW" Foreground="{StaticResource TextDim}" FontFamily="Consolas" FontSize="8" HorizontalAlignment="Center"/>
+                                            <TextBlock x:Name="CountRaw" Text="0" Foreground="#9CA3AF" FontFamily="Consolas" FontSize="16" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2" HorizontalAlignment="Center">
+                                            <TextBlock Text="EXTRACTED" Foreground="{StaticResource TextDim}" FontFamily="Consolas" FontSize="8" HorizontalAlignment="Center"/>
+                                            <TextBlock x:Name="CountExtracted" Text="0" Foreground="#4fc3f7" FontFamily="Consolas" FontSize="16" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="3" HorizontalAlignment="Center">
+                                            <TextBlock Text="TREATED" Foreground="{StaticResource TextDim}" FontFamily="Consolas" FontSize="8" HorizontalAlignment="Center"/>
+                                            <TextBlock x:Name="CountTreated" Text="0" Foreground="#34d399" FontFamily="Consolas" FontSize="16" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="4" HorizontalAlignment="Center">
+                                            <TextBlock Text="PROCESSED" Foreground="{StaticResource TextDim}" FontFamily="Consolas" FontSize="8" HorizontalAlignment="Center"/>
+                                            <TextBlock x:Name="CountProcessed" Text="0" Foreground="#fb923c" FontFamily="Consolas" FontSize="16" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="5" HorizontalAlignment="Center">
+                                            <TextBlock Text="REFINED" Foreground="{StaticResource TextDim}" FontFamily="Consolas" FontSize="8" HorizontalAlignment="Center"/>
+                                            <TextBlock x:Name="CountRefined" Text="0" Foreground="#f06292" FontFamily="Consolas" FontSize="16" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="6" HorizontalAlignment="Center">
+                                            <TextBlock Text="PURIFIED" Foreground="{StaticResource TextDim}" FontFamily="Consolas" FontSize="8" HorizontalAlignment="Center"/>
+                                            <TextBlock x:Name="CountPurified" Text="0" Foreground="#ffd700" FontFamily="Consolas" FontSize="16" FontWeight="Bold" HorizontalAlignment="Center"
+                                                       Effect="{StaticResource GoldGlow}"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+
+                                <!-- ── ROW 3: Drop Log — split My Drops / Party Drops ── -->
+                                <Border Grid.Row="3" Margin="8,6,8,0"
+                                        Background="#060D1A" BorderBrush="#0D2236"
+                                        BorderThickness="1" CornerRadius="4">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+
+                                        <!-- Log header with character name input -->
+                                        <Grid Grid.Row="0" Background="#070E1A">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="120"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- Tab strip: MY DROPS / PARTY DROPS -->
+                                            <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                                <Button x:Name="TabMyDrops" Click="TabMyDrops_Click"
+                                                        Background="Transparent" BorderThickness="0,0,0,2"
+                                                        BorderBrush="#00D4FF" Cursor="Hand" Padding="14,6">
+                                                    <TextBlock Text="MY DROPS" Foreground="#00D4FF"
+                                                               FontFamily="Consolas" FontSize="9" FontWeight="Bold"/>
+                                                </Button>
+                                                <Button x:Name="TabPartyDrops" Click="TabPartyDrops_Click"
+                                                        Background="Transparent" BorderThickness="0,0,0,1"
+                                                        BorderBrush="#1A3A5A" Cursor="Hand" Padding="14,6">
+                                                    <TextBlock Text="PARTY DROPS" Foreground="#3A5A7A"
+                                                               FontFamily="Consolas" FontSize="9" FontWeight="Bold"/>
+                                                </Button>
+                                            </StackPanel>
+
+                                            <!-- Spacer -->
+                                            <Border Grid.Column="1"/>
+
+                                            <!-- My character label -->
+                                            <TextBlock Grid.Column="2" Text="MY CHARACTER"
+                                                       Foreground="#3A5A7A" FontFamily="Consolas" FontSize="8" FontWeight="Bold"
+                                                       VerticalAlignment="Center" Margin="0,0,6,0"/>
+
+                                            <!-- Character name input -->
+                                            <Border Grid.Column="3" Background="#0A1525" BorderBrush="#0D2A3E"
+                                                    BorderThickness="1" CornerRadius="3" Margin="0,4,4,4">
+                                                <TextBox x:Name="MyCharBox" Background="Transparent"
+                                                         Foreground="#00D4FF" BorderThickness="0"
+                                                         FontFamily="Consolas" FontSize="10" FontWeight="Bold"
+                                                         Padding="6,3" VerticalContentAlignment="Center"
+                                                         KeyDown="MyCharBox_KeyDown"
+                                                         ToolTip="Enter your character name then press Enter"/>
+                                            </Border>
+
+                                            <!-- Save character name -->
+                                            <Button Grid.Column="4" x:Name="SaveCharBtn" Click="SaveChar_Click"
+                                                    Background="Transparent" BorderThickness="0,0,0,1"
+                                                    BorderBrush="#00D4FF" Cursor="Hand" Padding="10,5" Margin="0,4,6,4">
+                                                <TextBlock Text="SET" Foreground="#00D4FF"
+                                                           FontFamily="Consolas" FontSize="9" FontWeight="Bold"/>
+                                            </Button>
+                                        </Grid>
+
+                                        <!-- MY DROPS grid -->
+                                        <DataGrid Grid.Row="1" x:Name="DropGrid"
+                                                  AutoGenerateColumns="False" CanUserResizeRows="False" IsReadOnly="True">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="TIME"      Binding="{Binding Timestamp, StringFormat=HH:mm:ss}" Width="70"/>
+                                                <DataGridTextColumn Header="CHARACTER" Binding="{Binding Character}" Width="130"/>
+                                                <DataGridTextColumn Header="TYPE"      Binding="{Binding MetalType}" Width="100"/>
+                                                <DataGridTextColumn Header="QTY"       Binding="{Binding Quantity}"  Width="50"/>
+                                                <DataGridTextColumn Header="XP"        Binding="{Binding XpValue}"   Width="70"/>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+
+                                        <!-- PARTY DROPS grid — hidden by default -->
+                                        <DataGrid Grid.Row="1" x:Name="PartyDropGrid"
+                                                  Visibility="Collapsed"
+                                                  AutoGenerateColumns="False" CanUserResizeRows="False" IsReadOnly="True">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="TIME"      Binding="{Binding Timestamp, StringFormat=HH:mm:ss}" Width="70"/>
+                                                <DataGridTextColumn Header="CHARACTER" Binding="{Binding Character}" Width="130"/>
+                                                <DataGridTextColumn Header="TYPE"      Binding="{Binding MetalType}" Width="100"/>
+                                                <DataGridTextColumn Header="QTY"       Binding="{Binding Quantity}"  Width="50"/>
+                                                <DataGridTextColumn Header="XP"        Binding="{Binding XpValue}"   Width="70"/>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+                                    </Grid>
+                                </Border>
+
+                                <!-- ── ROW 4: Chat bar + bottom buttons ── -->
+                                <Grid Grid.Row="4" Margin="8,6,8,8">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="8"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <!-- Chat region bar -->
+                                    <Border Grid.Row="0" Background="#07101E" BorderBrush="#0D2236"
+                                            BorderThickness="1" CornerRadius="4" Padding="12,6">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="CHAT" Foreground="{StaticResource TextDim}"
+                                                       FontFamily="Consolas" FontSize="9" FontWeight="Bold"
+                                                       VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                            <ProgressBar Grid.Column="1" x:Name="CharProgressBar"
+                                                         Minimum="0" Maximum="60" Value="0" Height="4"
+                                                         Foreground="#00FF88" Background="#0D2236"
+                                                         BorderThickness="0" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="2" x:Name="CharCountLabel"
+                                                       Text="0 / 60" Foreground="#00FF88"
+                                                       FontFamily="Consolas" FontSize="10" FontWeight="Bold"
+                                                       Margin="10,0,0,0" VerticalAlignment="Center" Width="52"/>
+                                            <!-- LFG inline -->
+                                            <Border Grid.Column="3" x:Name="LfgPanel"
+                                                    Background="#0A1E35" BorderBrush="#00D4FF"
+                                                    BorderThickness="1" CornerRadius="3"
+                                                    Padding="8,2" Margin="8,0,0,0"
+                                                    Visibility="Collapsed">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="LFG" Foreground="#00D4FF"
+                                                               FontFamily="Consolas" FontSize="9" FontWeight="Bold"
+                                                               VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                                    <TextBlock x:Name="LfgTimerLabel" Text="60s"
+                                                               Foreground="#00D4FF" FontFamily="Consolas"
+                                                               FontSize="12" FontWeight="Bold"
+                                                               VerticalAlignment="Center" Width="32"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- ── CUSTOM ACTION BAR ── -->
+                                    <Grid Grid.Row="2">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>  <!-- Data group -->
+                                            <ColumnDefinition Width="12"/>    <!-- Spacer -->
+                                            <ColumnDefinition Width="Auto"/>  <!-- Overlays group -->
+                                            <ColumnDefinition Width="12"/>
+                                            <ColumnDefinition Width="Auto"/>  <!-- Toggles group -->
+                                            <ColumnDefinition Width="*"/>     <!-- Fill -->
+                                            <ColumnDefinition Width="Auto"/>  <!-- System -->
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- GROUP 1: Data actions -->
+                                        <Border Grid.Column="0" BorderBrush="#0D2236" BorderThickness="1"
+                                                CornerRadius="4" Background="#060D1A" Padding="3">
+                                            <StackPanel Orientation="Horizontal">
+                                                <!-- RESET SESSION — red accent -->
+                                                <Button x:Name="ClearSessionBtn" Click="ClearSession_Click"
+                                                        Background="Transparent" BorderThickness="0"
+                                                        Cursor="Hand" Padding="0" Margin="0,0,2,0"
+                                                        ToolTip="Clear current session data">
+                                                    <Border CornerRadius="3" Padding="10,6">
+                                                        <Border.Background>
+                                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                                <GradientStop Color="#1E0808" Offset="0"/>
+                                                                <GradientStop Color="#120505" Offset="1"/>
+                                                            </LinearGradientBrush>
+                                                        </Border.Background>
+                                                        <Border.BorderBrush>
+                                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                                <GradientStop Color="#FF4444" Offset="0"/>
+                                                                <GradientStop Color="#882222" Offset="1"/>
+                                                            </LinearGradientBrush>
+                                                        </Border.BorderBrush>
+                                                        <Border.BorderThickness>0,1,0,0</Border.BorderThickness>
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Text="↺" Foreground="#FF4444" FontSize="12"
+                                                                       FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,5,0">
+                                                                <TextBlock.Effect>
+                                                                    <DropShadowEffect Color="#FF4444" BlurRadius="6" ShadowDepth="0" Opacity="0.8"/>
+                                                                </TextBlock.Effect>
+                                                            </TextBlock>
+                                                            <TextBlock Text="RESET" Foreground="White"
+                                                                       FontFamily="Consolas" FontSize="12" FontWeight="Bold"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </Button>
+
+                                                <!-- VIEW ALL TIME — archive/history -->
+                                                <Button x:Name="ViewAllBtn" Click="ViewAll_Click"
+                                                        Background="Transparent" BorderThickness="0"
+                                                        Cursor="Hand" Padding="0"
+                                                        ToolTip="View all-time recorded drops">
+                                                    <Border CornerRadius="3" Padding="10,6">
+                                                        <Border.Background>
+                                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                                <GradientStop Color="#0A1E20" Offset="0"/>
+                                                                <GradientStop Color="#060E10" Offset="1"/>
+                                                            </LinearGradientBrush>
+                                                        </Border.Background>
+                                                        <Border.BorderBrush>
+                                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                                <GradientStop Color="#00D4FF" Offset="0"/>
+                                                                <GradientStop Color="#004455" Offset="1"/>
+                                                            </LinearGradientBrush>
+                                                        </Border.BorderBrush>
+                                                        <Border.BorderThickness>0,1,0,0</Border.BorderThickness>
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Text="◷" Foreground="#00D4FF" FontSize="12"
+                                                                       VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                            <TextBlock Text="ALL TIME" Foreground="White"
+                                                                       FontFamily="Consolas" FontSize="12" FontWeight="Bold"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </Button>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- GROUP 2: Overlays -->
+                                        <Border Grid.Column="2" BorderBrush="#0D2236" BorderThickness="1"
+                                                CornerRadius="4" Background="#060D1A" Padding="3">
+                                            <StackPanel Orientation="Horizontal">
+                                                <!-- DPS OVERLAY — combat gold -->
+                                                <Button x:Name="DpsOverlayBtn" Click="DpsOverlay_Click"
+                                                        Background="Transparent" BorderThickness="0"
+                                                        Cursor="Hand" Padding="0"
+                                                        ToolTip="Toggle DPS combat overlay">
+                                                    <Border CornerRadius="3" Padding="10,6">
+                                                        <Border.Background>
+                                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                                <GradientStop Color="#1E1200" Offset="0"/>
+                                                                <GradientStop Color="#100900" Offset="1"/>
+                                                            </LinearGradientBrush>
+                                                        </Border.Background>
+                                                        <Border.BorderBrush>
+                                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                                <GradientStop Color="#FFB300" Offset="0"/>
+                                                                <GradientStop Color="#664A00" Offset="1"/>
+                                                            </LinearGradientBrush>
+                                                        </Border.BorderBrush>
+                                                        <Border.BorderThickness>0,1,0,0</Border.BorderThickness>
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Text="⚔" Foreground="#FFB300" FontSize="11"
+                                                                       VerticalAlignment="Center" Margin="0,0,5,0">
+                                                                <TextBlock.Effect>
+                                                                    <DropShadowEffect Color="#FFB300" BlurRadius="8" ShadowDepth="0" Opacity="0.7"/>
+                                                                </TextBlock.Effect>
+                                                            </TextBlock>
+                                                            <StackPanel>
+                                                                <TextBlock Text="DPS" Foreground="White"
+                                                                           FontFamily="Consolas" FontSize="12" FontWeight="Bold"/>
+                                                                <TextBlock Text="OVERLAY" Foreground="#AAAAAA"
+                                                                           FontFamily="Consolas" FontSize="10"/>
+                                                            </StackPanel>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </Button>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- GROUP 3: Toggle states -->
+                                        <Border Grid.Column="4" BorderBrush="#0D2236" BorderThickness="1"
+                                                CornerRadius="4" Background="#060D1A" Padding="3">
+                                            <StackPanel Orientation="Horizontal">
+
+                                                <!-- SOUND toggle -->
+                                                <Button x:Name="SoundToggleBtn" Click="SoundToggle_Click"
+                                                        Background="Transparent" BorderThickness="0"
+                                                        Cursor="Hand" Padding="0" Margin="0,0,2,0"
+                                                        ToolTip="Toggle sound alerts">
+                                                    <Border x:Name="SoundBtnBorder" CornerRadius="3" Padding="8,5">
+                                                        <Border.Background>
+                                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                                <GradientStop Color="#0A1E10" Offset="0"/>
+                                                                <GradientStop Color="#060E08" Offset="1"/>
+                                                            </LinearGradientBrush>
+                                                        </Border.Background>
+                                                        <Border.BorderBrush>
+                                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                                <GradientStop Color="#00FF88" Offset="0"/>
+                                                                <GradientStop Color="#003A20" Offset="1"/>
+                                                            </LinearGradientBrush>
+                                                        </Border.BorderBrush>
+                                                        <Border.BorderThickness>0,1,0,0</Border.BorderThickness>
+                                                        <StackPanel>
+                                                            <!-- ◉ responds to Foreground — starts WHITE (Sound is ON by default) -->
+                                                            <TextBlock x:Name="SoundToggleBtn_Icon" Text="◉"
+                                                                       Foreground="White"
+                                                                       FontSize="14" FontWeight="Bold" HorizontalAlignment="Center">
+                                                                <TextBlock.Effect>
+                                                                    <DropShadowEffect Color="#00FF88" BlurRadius="8" ShadowDepth="0" Opacity="0.6"/>
+                                                                </TextBlock.Effect>
+                                                            </TextBlock>
+                                                            <TextBlock x:Name="SoundToggleBtn_Label" Text="SOUND ON"
+                                                                       Foreground="White" FontFamily="Consolas"
+                                                                       FontSize="11" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </Button>
+
+                                                <!-- ON TOP toggle -->
+                                                <Button x:Name="AlwaysOnTopBtn" Click="AlwaysOnTop_Click"
+                                                        Background="Transparent" BorderThickness="0"
+                                                        Cursor="Hand" Padding="0" Margin="0,0,2,0"
+                                                        ToolTip="Pin window always on top">
+                                                    <Border CornerRadius="3" Padding="8,5">
+                                                        <Border.Background>
+                                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                                <GradientStop Color="#100A1E" Offset="0"/>
+                                                                <GradientStop Color="#080612" Offset="1"/>
+                                                            </LinearGradientBrush>
+                                                        </Border.Background>
+                                                        <Border.BorderBrush>
+                                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                                <GradientStop Color="#A78BFA" Offset="0"/>
+                                                                <GradientStop Color="#3D2A6A" Offset="1"/>
+                                                            </LinearGradientBrush>
+                                                        </Border.BorderBrush>
+                                                        <Border.BorderThickness>0,1,0,0</Border.BorderThickness>
+                                                        <StackPanel>
+                                                            <!-- ◆ responds to Foreground — dim purple when inactive -->
+                                                            <TextBlock x:Name="AlwaysOnTopBtn_Icon" Text="◆"
+                                                                       Foreground="#6B3FA0"
+                                                                       FontSize="13" FontWeight="Bold" HorizontalAlignment="Center">
+                                                                <TextBlock.Effect>
+                                                                    <DropShadowEffect Color="#A855F7" BlurRadius="8" ShadowDepth="0" Opacity="0.5"/>
+                                                                </TextBlock.Effect>
+                                                            </TextBlock>
+                                                            <TextBlock x:Name="AlwaysOnTopBtn_Label" Text="TOP"
+                                                                       Foreground="White" FontFamily="Consolas"
+                                                                       FontSize="11" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </Button>
+
+                                                <!-- PERSIST toggle — multi-monitor -->
+                                                <Button x:Name="PersistOverlayBtn" Click="PersistOverlay_Click"
+                                                        Background="Transparent" BorderThickness="0"
+                                                        Cursor="Hand" Padding="0"
+                                                        ToolTip="Keep overlays visible on all monitors">
+                                                    <Border CornerRadius="3" Padding="8,5">
+                                                        <Border.Background>
+                                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                                <GradientStop Color="#081818" Offset="0"/>
+                                                                <GradientStop Color="#040C0C" Offset="1"/>
+                                                            </LinearGradientBrush>
+                                                        </Border.Background>
+                                                        <Border.BorderBrush>
+                                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                                <GradientStop Color="#22D3EE" Offset="0"/>
+                                                                <GradientStop Color="#065A6A" Offset="1"/>
+                                                            </LinearGradientBrush>
+                                                        </Border.BorderBrush>
+                                                        <Border.BorderThickness>0,1,0,0</Border.BorderThickness>
+                                                        <StackPanel>
+                                                            <!-- ▣ responds to Foreground — dim teal when inactive -->
+                                                            <TextBlock x:Name="PersistOverlayBtn_Icon" Text="▣"
+                                                                       Foreground="#0D5060"
+                                                                       FontSize="13" FontWeight="Bold" HorizontalAlignment="Center">
+                                                                <TextBlock.Effect>
+                                                                    <DropShadowEffect Color="#06B6D4" BlurRadius="8" ShadowDepth="0" Opacity="0.5"/>
+                                                                </TextBlock.Effect>
+                                                            </TextBlock>
+                                                            <TextBlock x:Name="PersistOverlayBtn_Label" Text="PERSIST"
+                                                                       Foreground="White" FontFamily="Consolas"
+                                                                       FontSize="11" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </Button>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- SYSTEM: Update — subtle right-aligned -->
+                                        <Border Grid.Column="6" BorderBrush="#0D2236" BorderThickness="1"
+                                                CornerRadius="4" Background="#060D1A" Padding="3">
+                                            <Button x:Name="CheckUpdateBtn" Click="CheckUpdate_Click"
+                                                    Background="Transparent" BorderThickness="0"
+                                                    Cursor="Hand" Padding="0"
+                                                    ToolTip="Check for application updates">
+                                                <Border CornerRadius="3" Padding="8,5">
+                                                    <Border.Background>
+                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                            <GradientStop Color="#080E18" Offset="0"/>
+                                                            <GradientStop Color="#040810" Offset="1"/>
+                                                        </LinearGradientBrush>
+                                                    </Border.Background>
+                                                    <StackPanel>
+                                                        <TextBlock x:Name="CheckUpdateBtn_Icon" Text="⟳"
+                                                                   Foreground="#8AAABB" FontSize="16" FontWeight="Bold"
+                                                                   HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="UPDATE" Foreground="White"
+                                                                   FontFamily="Consolas" FontSize="10" FontWeight="Bold"
+                                                                   HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </Button>
+                                        </Border>
+
+                                        <!-- Hidden legacy elements kept for code-behind compatibility -->
+                                        <TextBlock x:Name="LogPathText" Text="" Visibility="Collapsed"/>
+                                    </Grid>
+                                </Grid>
+                            </Grid>
+                        </TabItem>
+
+                        <!-- REPORTS TAB -->
+                        <TabItem Header="📊  REPORTS" x:Name="TabReports">
+                            <Grid Margin="8,8,8,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="220"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- LEFT: Fight list -->
+                                <Grid Grid.Column="0">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <TextBlock Grid.Row="0" Text="FIGHT HISTORY"
+                                               Foreground="{StaticResource TextDim}"
+                                               FontFamily="Consolas" FontSize="9" FontWeight="Bold"
+                                               Margin="0,0,0,8"/>
+
+                                    <Border Grid.Row="1" Background="#07101E" BorderBrush="#0D2236"
+                                            BorderThickness="1" CornerRadius="4">
+                                        <ListBox x:Name="ReportList"
+                                                 Background="Transparent" BorderThickness="0"
+                                                 SelectionChanged="ReportList_SelectionChanged">
+                                            <ListBox.ItemContainerStyle>
+                                                <Style TargetType="ListBoxItem">
+                                                    <Setter Property="Background" Value="Transparent"/>
+                                                    <Setter Property="Foreground" Value="White"/>
+                                                    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                                    <Setter Property="BorderBrush" Value="#0D2236"/>
+                                                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                                    <Setter Property="Padding" Value="10,6"/>
+                                                </Style>
+                                            </ListBox.ItemContainerStyle>
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <StackPanel Grid.Column="0">
+                                                            <TextBlock Text="{Binding FightName}" Foreground="White"
+                                                                       FontFamily="Consolas" FontSize="11" FontWeight="Bold"
+                                                                       TextTrimming="CharacterEllipsis"/>
+                                                            <TextBlock Text="{Binding DateLabel}" Foreground="#3A5A7A"
+                                                                       FontFamily="Consolas" FontSize="9"/>
+                                                            <TextBlock Text="{Binding DpsLabel}" Foreground="#00D4FF"
+                                                                       FontFamily="Consolas" FontSize="9"/>
+                                                        </StackPanel>
+                                                        <TextBlock Grid.Column="1" Text="⭐" FontSize="14"
+                                                                   Visibility="{Binding PbVis}" VerticalAlignment="Center"/>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+                                    </Border>
+
+                                    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,0">
+                                        <Button Content="⟳ Refresh" Style="{StaticResource ActionButton}"
+                                                FontSize="10" Padding="8,4" Margin="0,0,4,0"
+                                                Click="ReportRefresh_Click"/>
+                                        <Button Content="🗑 Delete" Style="{StaticResource ActionButton}"
+                                                FontSize="10" Padding="8,4" Foreground="#FF4444"
+                                                Click="ReportDelete_Click"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- Divider -->
+                                <Border Grid.Column="1" Background="#0D2236" Width="1" HorizontalAlignment="Center"/>
+
+                                <!-- RIGHT: Fight detail -->
+                                <Grid Grid.Column="2">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+
+                                    <!-- Summary cards -->
+                                    <Grid Grid.Row="0" x:Name="ReportSummaryPanel" Visibility="Collapsed" Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Border Grid.Column="0" Style="{StaticResource AccentCard}">
+                                            <StackPanel>
+                                                <TextBlock Text="TOTAL DMG"  Style="{StaticResource StatLabel}"/>
+                                                <TextBlock x:Name="RptTotalDmg" Text="—" Style="{StaticResource StatValue}" FontSize="20" Foreground="{StaticResource Gold}"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <Border Grid.Column="1" Style="{StaticResource StatCard}">
+                                            <StackPanel>
+                                                <TextBlock Text="DURATION"  Style="{StaticResource StatLabel}"/>
+                                                <TextBlock x:Name="RptDuration" Text="—" Style="{StaticResource StatValue}" FontSize="20"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <Border Grid.Column="2" Style="{StaticResource StatCard}">
+                                            <StackPanel>
+                                                <TextBlock Text="MAX HIT"   Style="{StaticResource StatLabel}"/>
+                                                <TextBlock x:Name="RptMaxHit" Text="—" Style="{StaticResource StatValue}" FontSize="20" Foreground="{StaticResource Orange}"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <Border Grid.Column="3" Style="{StaticResource AccentCard}">
+                                            <StackPanel>
+                                                <TextBlock Text="GROUP DPS" Style="{StaticResource StatLabel}"/>
+                                                <TextBlock x:Name="RptGroupDps" Text="—" Style="{StaticResource StatValue}" FontSize="20" Foreground="{StaticResource Cyan}"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+
+                                    <!-- Label editor -->
+                                    <Grid Grid.Row="1" x:Name="RptLabelPanel" Visibility="Collapsed" Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox Grid.Column="0" x:Name="RptLabelBox"
+                                                 Background="#07101E" Foreground="#E8F4FF"
+                                                 BorderBrush="#0D2A3E" FontFamily="Consolas" FontSize="11"
+                                                 Padding="8,5" VerticalContentAlignment="Center"/>
+                                        <Button Grid.Column="1" Content="Save Label" Margin="4,0,0,0"
+                                                Style="{StaticResource ActionButton}" Padding="10,5"
+                                                Click="RptSaveLabel_Click"/>
+                                    </Grid>
+
+                                    <!-- Leaderboard header -->
+                                    <Grid Grid.Row="2" x:Name="RptLbHeader" Visibility="Collapsed"
+                                          Margin="0,0,0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="80"/>
+                                            <ColumnDefinition Width="70"/>
+                                            <ColumnDefinition Width="60"/>
+                                            <ColumnDefinition Width="50"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Width="20"/>
+                                        <TextBlock Grid.Column="1" Text="PLAYER"   Foreground="{StaticResource TextDim}" FontFamily="Consolas" FontSize="9"/>
+                                        <TextBlock Grid.Column="2" Text="TOTAL"    Foreground="{StaticResource TextDim}" FontFamily="Consolas" FontSize="9" TextAlignment="Right"/>
+                                        <TextBlock Grid.Column="3" Text="DPS"      Foreground="{StaticResource TextDim}" FontFamily="Consolas" FontSize="9" TextAlignment="Right"/>
+                                        <TextBlock Grid.Column="4" Text="MAX HIT"  Foreground="{StaticResource TextDim}" FontFamily="Consolas" FontSize="9" TextAlignment="Right"/>
+                                        <TextBlock Grid.Column="5" Text="%"        Foreground="{StaticResource TextDim}" FontFamily="Consolas" FontSize="9" TextAlignment="Right"/>
+                                    </Grid>
+
+                                    <!-- Leaderboard scroll -->
+                                    <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto">
+                                        <StackPanel>
+                                            <ItemsControl x:Name="RptLeaderboard">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border Margin="0,2" Background="#0A1525"
+                                                                BorderBrush="#0D2236" BorderThickness="0,0,0,1"
+                                                                Padding="8,6">
+                                                            <StackPanel>
+                                                                <Grid>
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="20"/>
+                                                                        <ColumnDefinition Width="*"/>
+                                                                        <ColumnDefinition Width="80"/>
+                                                                        <ColumnDefinition Width="70"/>
+                                                                        <ColumnDefinition Width="60"/>
+                                                                        <ColumnDefinition Width="50"/>
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <TextBlock Grid.Column="0" Text="{Binding RoleIcon}" FontSize="11" VerticalAlignment="Center"/>
+                                                                    <StackPanel Grid.Column="1">
+                                                                        <TextBlock Text="{Binding Name}" Foreground="White" FontFamily="Consolas" FontSize="12" FontWeight="Bold"/>
+                                                                        <TextBlock Text="{Binding CRLabel}" Foreground="#2A4A6A" FontFamily="Consolas" FontSize="8"/>
+                                                                    </StackPanel>
+                                                                    <TextBlock Grid.Column="2" Text="{Binding TotalLabel}" Foreground="{Binding BarColor}" FontFamily="Consolas" FontSize="11" TextAlignment="Right" VerticalAlignment="Center"/>
+                                                                    <TextBlock Grid.Column="3" Text="{Binding DpsLabel}"   Foreground="#8B9FBF" FontFamily="Consolas" FontSize="11" TextAlignment="Right" VerticalAlignment="Center"/>
+                                                                    <TextBlock Grid.Column="4" Text="{Binding MaxHitLabel}" Foreground="#6B7F9F" FontFamily="Consolas" FontSize="10" TextAlignment="Right" VerticalAlignment="Center"/>
+                                                                    <TextBlock Grid.Column="5" Text="{Binding PctLabel}"   Foreground="#4A6A8A" FontFamily="Consolas" FontSize="11" TextAlignment="Right" VerticalAlignment="Center"/>
+                                                                </Grid>
+                                                                <Grid Background="#07101E" Margin="0,4,0,0" Height="2">
+                                                                    <Rectangle HorizontalAlignment="Left" Height="2"
+                                                                               Width="{Binding BarW}" Fill="{Binding BarColor}" RadiusX="1" RadiusY="1"/>
+                                                                </Grid>
+                                                                <ItemsControl ItemsSource="{Binding TopAbilities}"
+                                                                              Visibility="{Binding AbVis}" Margin="20,4,0,0">
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate>
+                                                                            <Grid Margin="0,1">
+                                                                                <Grid.ColumnDefinitions>
+                                                                                    <ColumnDefinition Width="*"/>
+                                                                                    <ColumnDefinition Width="65"/>
+                                                                                    <ColumnDefinition Width="55"/>
+                                                                                </Grid.ColumnDefinitions>
+                                                                                <TextBlock Grid.Column="0" Text="{Binding Ability}" Foreground="#4fc3f7" FontFamily="Consolas" FontSize="9" TextTrimming="CharacterEllipsis"/>
+                                                                                <TextBlock Grid.Column="1" Text="{Binding TotalFmt}" Foreground="#4A6A8A" FontFamily="Consolas" FontSize="9" TextAlignment="Right"/>
+                                                                                <TextBlock Grid.Column="2" Text="{Binding AvgFmt}"   Foreground="#2A4A6A" FontFamily="Consolas" FontSize="9" TextAlignment="Right"/>
+                                                                            </Grid>
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+                                                                </ItemsControl>
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </ScrollViewer>
+
+                                    <!-- No selection prompt -->
+                                    <TextBlock Grid.Row="3" x:Name="RptNoSelection"
+                                               Text="Select a fight from the list"
+                                               Foreground="#1A2E42" FontFamily="Consolas" FontSize="13"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Grid>
+                            </Grid>
+                        </TabItem>
+        </TabControl>
     </Grid>
 </Window>
-
-
 
 
 

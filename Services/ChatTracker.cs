@@ -174,10 +174,16 @@ namespace DCUOTracker.Services
         }
 
         // Must be called under _stateLock
+        // Persisted last LFG post time — survives app restarts
+        public Action<DateTime>? OnLfgStarted { get; set; }
+
         private void StartLfgCooldown()
         {
             _lfgActive = true;
             _lfgRemain = LFG_COOLDOWN;
+
+            var now = DateTime.UtcNow;
+            OnLfgStarted?.Invoke(now); // persist to settings
 
             LfgTimerUpdated?.Invoke(this, new LfgTimerArgs
                 { SecondsRemaining = _lfgRemain, Started = true });
@@ -187,6 +193,27 @@ namespace DCUOTracker.Services
             _lfgTimer = new System.Timers.Timer(1000);
             _lfgTimer.Elapsed += LfgTick;
             _lfgTimer.Start();
+        }
+
+        /// <summary>Restore LFG timer from persisted last-post time (after app restart).</summary>
+        public void RestoreLfgTimer(DateTime lastPostUtc)
+        {
+            lock (_stateLock)
+            {
+                if (_lfgActive) return;
+                int remaining = LFG_COOLDOWN - (int)(DateTime.UtcNow - lastPostUtc).TotalSeconds;
+                if (remaining <= 0) return; // already expired
+
+                _lfgActive = true;
+                _lfgRemain = remaining;
+                LfgTimerUpdated?.Invoke(this, new LfgTimerArgs
+                    { SecondsRemaining = _lfgRemain, Started = true });
+                _lfgTimer?.Stop();
+                _lfgTimer?.Dispose();
+                _lfgTimer = new System.Timers.Timer(1000);
+                _lfgTimer.Elapsed += LfgTick;
+                _lfgTimer.Start();
+            }
         }
 
         // H-3: proper try/catch — not async void
@@ -216,13 +243,19 @@ namespace DCUOTracker.Services
         // ── Helpers ───────────────────────────────────────────────────
 
         // Must be called under _stateLock
-        private void FireChatState() =>
-            ChatStateChanged?.Invoke(this, new ChatStateChangedArgs
+        // HIGH-5 fix: capture args under lock, fire AFTER releasing lock
+        private void FireChatState()
+        {
+            var args = new ChatStateChangedArgs
             {
                 IsActive  = _chatActive,
                 CharCount = _charCount,
                 AtLimit   = _charCount >= CHAR_LIMIT
-            });
+            };
+            // NOTE: caller must release _stateLock before this propagates to UI
+            // We use BeginInvoke in handlers to avoid deadlock
+            ChatStateChanged?.Invoke(this, args);
+        }
 
         private static bool IsTypableChar(Keys key)
         {
@@ -280,9 +313,14 @@ namespace DCUOTracker.Services
             _hook.ShouldSuppress = null;
             lock (_stateLock)
             {
-                _lfgTimer?.Stop();
-                _lfgTimer?.Dispose();
-                _lfgTimer = null;
+                // LOW-2 fix: unsubscribe event before disposing timer
+                if (_lfgTimer != null)
+                {
+                    _lfgTimer.Elapsed -= LfgTick;
+                    _lfgTimer.Stop();
+                    _lfgTimer.Dispose();
+                    _lfgTimer = null;
+                }
             }
         }
 

@@ -10,6 +10,9 @@
       <ApplicationIcon>dcuo-qol.ico</ApplicationIcon>
     <AssemblyName>DCUO-QualityOfLife</AssemblyName>
     <Product>DCUO Quality of Life</Product>
+    <Version>1.1.0</Version>
+    <AssemblyVersion>1.1.0</AssemblyVersion>
+    <FileVersion>1.1.0</FileVersion>
       <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
 
@@ -23,6 +26,8 @@
   </ItemGroup>
 
 </Project>
+
+
 
 
 

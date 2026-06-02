@@ -9,6 +9,7 @@ namespace DCUOTracker.Models
         public int XpValue { get; set; }
         public string Character { get; set; } = "";
         public string Session { get; set; } = "";
+        public bool   IsOwn     { get; set; } = true;
 
         public static int GetXpValue(string metalType) => metalType.ToLower() switch
         {
@@ -22,3 +23,4 @@ namespace DCUOTracker.Models
         };
     }
 }
+

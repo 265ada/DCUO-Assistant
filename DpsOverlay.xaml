@@ -1,0 +1,179 @@
+<Window x:Class="DCUOTracker.DpsOverlay"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="DPS" Width="290"
+        SizeToContent="Height"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ResizeMode="NoResize"
+        Left="20" Top="200">
+
+    <Border Background="#E6050A18" CornerRadius="8"
+            BorderBrush="#00d4ff" BorderThickness="1"
+            MouseDown="Border_MouseDown">
+        <StackPanel Margin="8,6,8,8">
+
+            <!-- Title bar -->
+            <Grid Margin="0,0,0,4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" x:Name="FightLabel"
+                           Text="⚔ NO FIGHT" Foreground="#00d4ff"
+                           FontSize="11" FontWeight="Bold" FontFamily="Segoe UI"
+                           VerticalAlignment="Center"/>
+                <Button Grid.Column="1" x:Name="PinBtn" Content="📌"
+                        Background="Transparent" BorderThickness="0"
+                        Foreground="#00d4ff" FontSize="10" Cursor="Hand"
+                        Padding="3,1" Click="Pin_Click"/>
+                <Button Grid.Column="2" Content="✕"
+                        Background="Transparent" BorderThickness="0"
+                        Foreground="#ff4444" FontSize="10" Cursor="Hand"
+                        Padding="3,1" Click="Close_Click"/>
+            </Grid>
+
+            <!-- Stats bar -->
+            <StackPanel x:Name="StatsPanel" Visibility="Collapsed">
+                <TextBlock x:Name="TotalDmgLabel" Text="0"
+                           Foreground="#ffd700" FontSize="22" FontWeight="Bold"
+                           FontFamily="Consolas" HorizontalAlignment="Center"/>
+                <Grid Margin="0,1,0,3">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" x:Name="MaxHitLabel" Text="Max: —"
+                               Foreground="#888" FontSize="9"/>
+                    <TextBlock Grid.Column="1" x:Name="DurationLabel" Text="0:00"
+                               Foreground="#888" FontSize="9" HorizontalAlignment="Right"/>
+                </Grid>
+                <Border BorderBrush="#222" BorderThickness="0,1,0,0" Margin="0,0,0,4"/>
+            </StackPanel>
+
+            <!-- Player leaderboard -->
+            <ItemsControl x:Name="PlayerList">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Button Background="Transparent" BorderThickness="0"
+                                Padding="0" Cursor="Hand"
+                                Click="PlayerRow_Click" Tag="{Binding}">
+                            <Grid Margin="0,1,0,2">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="4"/>
+                                </Grid.RowDefinitions>
+                                <Grid Grid.Row="0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="38"/>
+                                    </Grid.ColumnDefinitions>
+                                    <!-- Power type icon -->
+                                    <TextBlock Grid.Column="0" Text="{Binding PowerIcon}"
+                                               FontSize="11" VerticalAlignment="Center"
+                                               Margin="0,0,3,0" Visibility="{Binding PowerIconVis}"/>
+                                    <!-- Role icon -->
+                                    <TextBlock Grid.Column="1" Text="{Binding RoleIcon}"
+                                               FontSize="10" VerticalAlignment="Center"
+                                               Foreground="{Binding RoleColor}"
+                                               Margin="0,0,4,0" Visibility="{Binding RoleIconVis}"/>
+                                    <!-- Player name + CR -->
+                                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Name}"
+                                                   Foreground="White" FontSize="11"
+                                                   FontWeight="Bold" FontFamily="Segoe UI"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding CRLabel}"
+                                                   Foreground="#555" FontSize="8"
+                                                   FontFamily="Consolas"
+                                                   Visibility="{Binding CRVis}"/>
+                                    </StackPanel>
+                                    <!-- DPS -->
+                                    <TextBlock Grid.Column="3" Text="{Binding DpsLabel}"
+                                               Foreground="{Binding BarColor}"
+                                               FontSize="10" FontFamily="Consolas"
+                                               Margin="4,0" VerticalAlignment="Center"/>
+                                    <!-- % -->
+                                    <TextBlock Grid.Column="4" Text="{Binding PctLabel}"
+                                               Foreground="#aaa" FontSize="10"
+                                               FontFamily="Consolas" TextAlignment="Right"
+                                               VerticalAlignment="Center"/>
+                                </Grid>
+                                <!-- Bar -->
+                                <Grid Grid.Row="1" Background="#111827">
+                                    <Rectangle HorizontalAlignment="Left"
+                                               Width="{Binding BarWidth}"
+                                               Fill="{Binding BarColor}" Opacity="0.75"
+                                               Height="4" RadiusX="2" RadiusY="2"/>
+                                </Grid>
+                            </Grid>
+                        </Button>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!-- Ability breakdown -->
+            <StackPanel x:Name="AbilityPanel" Visibility="Collapsed" Margin="0,5,0,0">
+                <Border BorderBrush="#222" BorderThickness="0,1,0,0" Margin="0,0,0,4"/>
+                <Grid Margin="0,0,0,3">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" x:Name="AbilityPowerIcon" Text=""
+                               FontSize="13" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                    <TextBlock Grid.Column="1" x:Name="AbilityPlayerLabel"
+                               Text="POWERS" Foreground="#00d4ff"
+                               FontSize="9" FontWeight="Bold" VerticalAlignment="Center"/>
+                    <Button Grid.Column="2" Content="✕" Click="CloseAbility_Click"
+                            Background="Transparent" BorderThickness="0"
+                            Foreground="#555" FontSize="9" Cursor="Hand" Padding="2,0"/>
+                </Grid>
+                <ItemsControl x:Name="AbilityList">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="0,1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="50"/>
+                                    <ColumnDefinition Width="42"/>
+                                    <ColumnDefinition Width="30"/>
+                                </Grid.ColumnDefinitions>
+                                <!-- Category dot -->
+                                <Ellipse Grid.Column="0" Width="6" Height="6"
+                                         Fill="{Binding CatColor}" VerticalAlignment="Center"
+                                         Margin="0,0,4,0"/>
+                                <TextBlock Grid.Column="1" Text="{Binding Name}"
+                                           Foreground="{Binding BarColor}"
+                                           FontSize="9" FontFamily="Segoe UI"
+                                           TextTrimming="CharacterEllipsis"
+                                           VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="2" Text="{Binding AvgLabel}"
+                                           Foreground="#666" FontSize="9"
+                                           FontFamily="Consolas" TextAlignment="Right"/>
+                                <TextBlock Grid.Column="3" Text="{Binding TotalLabel}"
+                                           Foreground="#aaa" FontSize="9"
+                                           FontFamily="Consolas" TextAlignment="Right"
+                                           Margin="2,0"/>
+                                <TextBlock Grid.Column="4" Text="{Binding PctLabel}"
+                                           Foreground="#555" FontSize="9"
+                                           FontFamily="Consolas" TextAlignment="Right"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+
+        </StackPanel>
+    </Border>
+</Window>
+
