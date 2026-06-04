@@ -25,6 +25,11 @@ namespace DCUOTracker.Services
             @"^(.+?)'s\s+(.+?)\s+healed\s+(.+?)\s+for\s+([\d,]+)",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
+        // "X's Ability knocked out Y" (no "for N") — pure knockout/death event
+        private static readonly Regex KoText = new(
+            @"^(.+?)'s\s+(.+?)\s+knocked out\s+(.+?)\.?$",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
         private const double FIGHT_GAP_SECONDS  = 5.0;
         private const double STALL_THRESHOLD    = 5.0;
         private const long   UNIX_MICRO_EPOCH   = 621355968000000000L; // ticks at Unix epoch
@@ -162,6 +167,8 @@ namespace DCUOTracker.Services
             {
                 if (eventType == "Damage" && direction == "Out")
                     HandleDamage(text, j, eventTime);
+                else if (eventType == "Damage" && direction == "In")
+                    HandleIncoming(text, j, eventTime);
                 else if (eventType == "Healing" && direction == "Out")
                     HandleHeal(text, j, eventTime);
                 else if (eventType == "Power" && direction == "Out")
@@ -219,6 +226,39 @@ namespace DCUOTracker.Services
             }
         }
 
+        // Incoming damage to the player/pets — feeds death recap. Never starts a fight.
+        private void HandleIncoming(string text, JsonElement? j, DateTime eventTime)
+        {
+            if (_currentFight == null || !_currentFight.IsActive) return;
+            double sec = (eventTime - _currentFight.StartTime).TotalSeconds;
+
+            var m = DmgText.Match(text);
+            if (m.Success)
+            {
+                string src    = JsonExtensions.TryGetProp(j, "inm") ?? m.Groups[1].Value;
+                string ability= JsonExtensions.TryGetProp(j, "anm") ?? m.Groups[2].Value;
+                bool   ko     = m.Groups[3].Value.Contains("knocked out", StringComparison.OrdinalIgnoreCase);
+                bool   crit   = m.Groups[3].Value.Contains("critically", StringComparison.OrdinalIgnoreCase);
+                string victim = JsonExtensions.TryGetProp(j, "tnm") ?? m.Groups[4].Value;
+                long   dmg    = ParseValue(m.Groups[5].Value);
+
+                _lastEventTime = eventTime;
+                var v = _currentFight.GetOrAdd(victim);
+                if (dmg > 0) v.AddIncoming(sec, src, ability, dmg, crit);
+                if (ko) v.MarkDeath(eventTime);
+                return;
+            }
+
+            // Pure knockout with no damage number
+            var k = KoText.Match(text);
+            if (k.Success)
+            {
+                string victim = JsonExtensions.TryGetProp(j, "tnm") ?? k.Groups[3].Value;
+                _currentFight.GetOrAdd(victim).MarkDeath(eventTime);
+                _lastEventTime = eventTime;
+            }
+        }
+
         private void HandleHeal(string text, JsonElement? j, DateTime eventTime)
         {
             var m = HealText.Match(text);
@@ -249,7 +289,8 @@ namespace DCUOTracker.Services
             {
                 FightName = mainTarget,
                 StartTime = eventTime,
-                IsActive  = true
+                IsActive  = true,
+                IsSparringParse = mainTarget.Contains("Sparring Target", StringComparison.OrdinalIgnoreCase)
             };
 
             lock (_histLock)

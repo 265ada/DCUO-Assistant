@@ -309,6 +309,42 @@
                         </Border>
                     </Button>
 
+                    <!-- SCORECARD — green, OCR the in-game Leaderboard for group DPS -->
+                    <Button x:Name="ScorecardRegionBtn" Click="SelectScorecardRegion_Click"
+                            Background="Transparent" BorderThickness="0"
+                            Cursor="Hand" Margin="0,0,12,0" Padding="0"
+                            ToolTip="Calibrate the in-game Scorecard → Leaderboard region. Then open it in-game and press F10 to read everyone's DPS.">
+                        <Border CornerRadius="4" Padding="11,6">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                    <GradientStop Color="#08180F" Offset="0"/>
+                                    <GradientStop Color="#040C08" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <Border.BorderBrush>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                    <GradientStop Color="#34D399" Offset="0"/>
+                                    <GradientStop Color="#0B5A3A" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Border.BorderBrush>
+                            <Border.BorderThickness>0,1,0,0</Border.BorderThickness>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="▦" Foreground="#34D399" FontSize="14" FontWeight="Bold"
+                                           VerticalAlignment="Center" Margin="0,0,7,0">
+                                    <TextBlock.Effect>
+                                        <DropShadowEffect Color="#10B981" BlurRadius="8" ShadowDepth="0" Opacity="0.9"/>
+                                    </TextBlock.Effect>
+                                </TextBlock>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="SCORECARD" Foreground="White"
+                                               FontFamily="Consolas" FontSize="11" FontWeight="Bold"/>
+                                    <TextBlock Text="GROUP DPS · F10" Foreground="#34D399"
+                                               FontFamily="Consolas" FontSize="9" Opacity="0.6"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </Button>
+
                     <Border Width="1" Background="#0D2236" Margin="0,8,12,8"/>
 
                     <TextBlock x:Name="VersionLabel" Text="v1.0.0"
@@ -815,16 +851,20 @@
                                                         </Border.BorderBrush>
                                                         <Border.BorderThickness>0,1,0,0</Border.BorderThickness>
                                                         <StackPanel Orientation="Horizontal">
-                                                            <TextBlock Text="⚔" Foreground="#FFB300" FontSize="11"
+                                                            <!-- Icon dim when inactive, gold when active -->
+                                                            <TextBlock x:Name="DpsBtn_Icon" Text="⚔"
+                                                                       Foreground="#3A2A00" FontSize="11"
                                                                        VerticalAlignment="Center" Margin="0,0,5,0">
                                                                 <TextBlock.Effect>
-                                                                    <DropShadowEffect Color="#FFB300" BlurRadius="8" ShadowDepth="0" Opacity="0.7"/>
+                                                                    <DropShadowEffect Color="#FFB300" BlurRadius="4" ShadowDepth="0" Opacity="0.2"/>
                                                                 </TextBlock.Effect>
                                                             </TextBlock>
                                                             <StackPanel>
-                                                                <TextBlock Text="DPS" Foreground="White"
+                                                                <TextBlock x:Name="DpsBtn_Label" Text="DPS"
+                                                                           Foreground="#555555"
                                                                            FontFamily="Consolas" FontSize="12" FontWeight="Bold"/>
-                                                                <TextBlock Text="OVERLAY" Foreground="#AAAAAA"
+                                                                <TextBlock x:Name="DpsBtn_Sub" Text="OVERLAY"
+                                                                           Foreground="#333333"
                                                                            FontFamily="Consolas" FontSize="10"/>
                                                             </StackPanel>
                                                         </StackPanel>
@@ -1072,25 +1112,25 @@
                                         <Border Grid.Column="0" Style="{StaticResource AccentCard}">
                                             <StackPanel>
                                                 <TextBlock Text="TOTAL DMG"  Style="{StaticResource StatLabel}"/>
-                                                <TextBlock x:Name="RptTotalDmg" Text="—" Style="{StaticResource StatValue}" FontSize="20" Foreground="{StaticResource Gold}"/>
+                                                <TextBlock x:Name="RptTotalDmg" Text="—" Style="{StaticResource StatValue}" FontSize="28" Foreground="{StaticResource Gold}"/>
                                             </StackPanel>
                                         </Border>
                                         <Border Grid.Column="1" Style="{StaticResource StatCard}">
                                             <StackPanel>
                                                 <TextBlock Text="DURATION"  Style="{StaticResource StatLabel}"/>
-                                                <TextBlock x:Name="RptDuration" Text="—" Style="{StaticResource StatValue}" FontSize="20"/>
+                                                <TextBlock x:Name="RptDuration" Text="—" Style="{StaticResource StatValue}" FontSize="28"/>
                                             </StackPanel>
                                         </Border>
                                         <Border Grid.Column="2" Style="{StaticResource StatCard}">
                                             <StackPanel>
                                                 <TextBlock Text="MAX HIT"   Style="{StaticResource StatLabel}"/>
-                                                <TextBlock x:Name="RptMaxHit" Text="—" Style="{StaticResource StatValue}" FontSize="20" Foreground="{StaticResource Orange}"/>
+                                                <TextBlock x:Name="RptMaxHit" Text="—" Style="{StaticResource StatValue}" FontSize="28" Foreground="{StaticResource Orange}"/>
                                             </StackPanel>
                                         </Border>
                                         <Border Grid.Column="3" Style="{StaticResource AccentCard}">
                                             <StackPanel>
-                                                <TextBlock Text="GROUP DPS" Style="{StaticResource StatLabel}"/>
-                                                <TextBlock x:Name="RptGroupDps" Text="—" Style="{StaticResource StatValue}" FontSize="20" Foreground="{StaticResource Cyan}"/>
+                                                <TextBlock Text="MY DPS" Style="{StaticResource StatLabel}"/>
+                                                <TextBlock x:Name="RptGroupDps" Text="—" Style="{StaticResource StatValue}" FontSize="28" Foreground="{StaticResource Cyan}"/>
                                             </StackPanel>
                                         </Border>
                                     </Grid>
@@ -1172,8 +1212,11 @@
                                                                                     <ColumnDefinition Width="65"/>
                                                                                     <ColumnDefinition Width="55"/>
                                                                                 </Grid.ColumnDefinitions>
-                                                                                <TextBlock Grid.Column="0" Text="{Binding Ability}" Foreground="#4fc3f7" FontFamily="Consolas" FontSize="9" TextTrimming="CharacterEllipsis"/>
-                                                                                <TextBlock Grid.Column="1" Text="{Binding TotalFmt}" Foreground="#4A6A8A" FontFamily="Consolas" FontSize="9" TextAlignment="Right"/>
+                                                                                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                                                                <TextBlock Text="{Binding Badge}" Foreground="{Binding AbColor}" FontSize="11" FontWeight="Bold" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                                                                <TextBlock Text="{Binding Ability}" Foreground="{Binding AbColor}" FontFamily="Consolas" FontSize="11" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
+                                                                            </StackPanel>
+                                                                                <TextBlock Grid.Column="1" Text="{Binding TotalFmt}" Foreground="{Binding AbColor}" FontFamily="Consolas" FontSize="11" FontWeight="Bold" TextAlignment="Right" Opacity="0.9"/>
                                                                                 <TextBlock Grid.Column="2" Text="{Binding AvgFmt}"   Foreground="#2A4A6A" FontFamily="Consolas" FontSize="9" TextAlignment="Right"/>
                                                                             </Grid>
                                                                         </DataTemplate>
@@ -1184,6 +1227,147 @@
                                                     </DataTemplate>
                                                 </ItemsControl.ItemTemplate>
                                             </ItemsControl>
+
+                                            <!-- ── PERFORMANCE ANALYSIS (selected player) ── -->
+                                            <StackPanel x:Name="RptAnalysis" Visibility="Collapsed" Margin="0,12,0,0">
+
+                                                <TextBlock x:Name="RptAnalysisWho" Text="MY PERFORMANCE"
+                                                           Foreground="{StaticResource Cyan}" FontFamily="Consolas"
+                                                           FontSize="11" FontWeight="Bold" Margin="0,0,0,6"/>
+
+                                                <!-- DPS over time graph -->
+                                                <Border Background="#0A1525" CornerRadius="5" Padding="6" Margin="0,0,0,10" Height="94">
+                                                    <Grid>
+                                                        <Canvas x:Name="RptGraphCanvas" ClipToBounds="True"
+                                                                SizeChanged="RptGraph_SizeChanged"/>
+                                                        <TextBlock Text="DPS OVER TIME" Foreground="#3A5A7A" FontFamily="Consolas"
+                                                                   FontSize="8" FontWeight="Bold" VerticalAlignment="Top" HorizontalAlignment="Left"/>
+                                                        <TextBlock x:Name="RptGraphPeak" Text="" Foreground="#FF8A3D" FontFamily="Consolas"
+                                                                   FontSize="8" VerticalAlignment="Top" HorizontalAlignment="Right"/>
+                                                    </Grid>
+                                                </Border>
+
+                                                <!-- Metric cards -->
+                                                <Grid Margin="0,0,0,10">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <Border Grid.Column="0" Background="#0A1525" CornerRadius="5" Padding="8,6" Margin="0,0,4,0">
+                                                        <StackPanel>
+                                                            <TextBlock Text="ACTIVITY" Foreground="#5A6B85" FontFamily="Consolas" FontSize="8" FontWeight="Bold"/>
+                                                            <StackPanel Orientation="Horizontal">
+                                                                <Border x:Name="RptA_GradeBox" CornerRadius="3" Padding="4,0" Background="#9CA3AF" Margin="0,2,5,0" VerticalAlignment="Center">
+                                                                    <TextBlock x:Name="RptA_Grade" Text="—" Foreground="Black" FontSize="11" FontWeight="Bold"/>
+                                                                </Border>
+                                                                <TextBlock x:Name="RptA_Activity" Text="—" Foreground="White" FontFamily="Consolas" FontSize="17" FontWeight="Bold"/>
+                                                            </StackPanel>
+                                                        </StackPanel>
+                                                    </Border>
+                                                    <Border Grid.Column="1" Background="#0A1525" CornerRadius="5" Padding="8,6" Margin="0,0,4,0">
+                                                        <StackPanel>
+                                                            <TextBlock Text="CRIT" Foreground="#5A6B85" FontFamily="Consolas" FontSize="8" FontWeight="Bold"/>
+                                                            <TextBlock x:Name="RptA_Crit" Text="—" Foreground="#34D399" FontFamily="Consolas" FontSize="17" FontWeight="Bold"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                    <Border Grid.Column="2" Background="#0A1525" CornerRadius="5" Padding="8,6" Margin="0,0,4,0">
+                                                        <StackPanel>
+                                                            <TextBlock Text="APM" Foreground="#5A6B85" FontFamily="Consolas" FontSize="8" FontWeight="Bold"/>
+                                                            <TextBlock x:Name="RptA_Apm" Text="—" Foreground="#60A5FA" FontFamily="Consolas" FontSize="17" FontWeight="Bold"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                    <Border Grid.Column="3" Background="#0A1525" CornerRadius="5" Padding="8,6">
+                                                        <StackPanel>
+                                                            <TextBlock Text="BURST 10s" Foreground="#5A6B85" FontFamily="Consolas" FontSize="8" FontWeight="Bold"/>
+                                                            <TextBlock x:Name="RptA_Burst" Text="—" Foreground="#FF8A3D" FontFamily="Consolas" FontSize="17" FontWeight="Bold"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </Grid>
+
+                                                <!-- Might/Super/Precision split -->
+                                                <Canvas x:Name="RptA_SplitCanvas" Height="9" Background="#0D1525" Margin="0,0,0,2">
+                                                    <Rectangle x:Name="RptMightSeg" Canvas.Left="0" Height="9" Fill="#FF6B35"/>
+                                                    <Rectangle x:Name="RptSuperSeg" Height="9" Fill="#FBBF24"/>
+                                                    <Rectangle x:Name="RptPrecSeg"  Height="9" Fill="#9CA3AF"/>
+                                                </Canvas>
+                                                <TextBlock x:Name="RptA_Split" Text="" Foreground="#7A8AA5" FontFamily="Consolas" FontSize="9" Margin="0,0,0,12"/>
+
+                                                <!-- Coach verdict -->
+                                                <Border x:Name="RptCoachBox" Background="#15241A" BorderBrush="#1EFF00"
+                                                        BorderThickness="0,0,0,2" CornerRadius="6" Padding="12,9" Margin="0,0,0,12">
+                                                    <StackPanel>
+                                                        <TextBlock x:Name="RptCoachLabel" Text="COACH" Foreground="#7CFC00"
+                                                                   FontFamily="Consolas" FontSize="10" FontWeight="Bold" Margin="0,0,0,3"/>
+                                                        <TextBlock x:Name="RptCoachText" Text="" Foreground="#CDE8C4"
+                                                                   FontFamily="Segoe UI" FontSize="12" TextWrapping="Wrap"/>
+                                                    </StackPanel>
+                                                </Border>
+
+                                                <!-- Rotation timeline -->
+                                                <TextBlock Text="ROTATION TIMELINE" Foreground="{StaticResource Gold}"
+                                                           FontFamily="Consolas" FontSize="11" FontWeight="Bold" Margin="0,0,0,2"/>
+                                                <TextBlock x:Name="RptRotSummary" Text="" Foreground="#7A8AA5"
+                                                           FontFamily="Consolas" FontSize="10" Margin="0,0,0,6" TextWrapping="Wrap"/>
+                                                <ItemsControl x:Name="RptRotation" Margin="0,0,0,12">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <StackPanel>
+                                                                <!-- downtime/clip marker -->
+                                                                <TextBlock Text="{Binding GapText}" Foreground="{Binding GapColor}"
+                                                                           Visibility="{Binding GapVis}" FontFamily="Consolas"
+                                                                           FontSize="9" Margin="44,1,0,1"/>
+                                                                <Grid>
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="40"/>
+                                                                        <ColumnDefinition Width="4"/>
+                                                                        <ColumnDefinition Width="*"/>
+                                                                        <ColumnDefinition Width="60"/>
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <TextBlock Grid.Column="0" Text="{Binding Time}" Foreground="#4A6A8A"
+                                                                               FontFamily="Consolas" FontSize="10" TextAlignment="Right"/>
+                                                                    <Rectangle Grid.Column="1" Fill="{Binding CatColor}" Width="3" Margin="0,1"
+                                                                               RadiusX="1" RadiusY="1"/>
+                                                                    <TextBlock Grid.Column="2" Text="{Binding Name}" Foreground="#D7E2F0"
+                                                                               FontFamily="Consolas" FontSize="11" Margin="6,0,0,0"
+                                                                               TextTrimming="CharacterEllipsis"/>
+                                                                    <TextBlock Grid.Column="3" Text="{Binding Dmg}" Foreground="#8B9FBF"
+                                                                               FontFamily="Consolas" FontSize="10" TextAlignment="Right"/>
+                                                                </Grid>
+                                                            </StackPanel>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+
+                                                <!-- Death recap -->
+                                                <StackPanel x:Name="RptDeathPanel" Visibility="Collapsed">
+                                                    <TextBlock x:Name="RptDeathHeader" Text="💀 DEATH RECAP"
+                                                               Foreground="#FF5050" FontFamily="Consolas" FontSize="11"
+                                                               FontWeight="Bold" Margin="0,0,0,4"/>
+                                                    <ItemsControl x:Name="RptDeathList" Margin="0,0,0,10">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Grid Margin="0,1">
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="40"/>
+                                                                        <ColumnDefinition Width="*"/>
+                                                                        <ColumnDefinition Width="60"/>
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <TextBlock Grid.Column="0" Text="{Binding Time}" Foreground="#4A6A8A"
+                                                                               FontFamily="Consolas" FontSize="10" TextAlignment="Right"/>
+                                                                    <TextBlock Grid.Column="1" Text="{Binding What}" Foreground="#D7A0A0"
+                                                                               FontFamily="Consolas" FontSize="11" Margin="6,0,0,0"
+                                                                               TextTrimming="CharacterEllipsis"/>
+                                                                    <TextBlock Grid.Column="2" Text="{Binding Dmg}" Foreground="#FF7070"
+                                                                               FontFamily="Consolas" FontSize="10" FontWeight="Bold" TextAlignment="Right"/>
+                                                                </Grid>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </StackPanel>
+
+                                            </StackPanel>
                                         </StackPanel>
                                     </ScrollViewer>
 
@@ -1195,9 +1379,459 @@
                                 </Grid>
                             </Grid>
                         </TabItem>
+
+                        <TabItem Header="🛠  BUILDS" x:Name="TabBuilds">
+                            <Grid Margin="8,8,8,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="190"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- LEFT: Power list -->
+                                <Grid Grid.Column="0">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Grid.Row="0" Text="DPS POWERS"
+                                               Foreground="{StaticResource TextDim}"
+                                               FontFamily="Consolas" FontSize="9" FontWeight="Bold"
+                                               Margin="0,0,0,8"/>
+                                    <Border Grid.Row="1" Background="#07101E" BorderBrush="#0D2236"
+                                            BorderThickness="1" CornerRadius="4">
+                                        <ListBox x:Name="BuildList"
+                                                 Background="Transparent" BorderThickness="0"
+                                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                                 SelectionChanged="BuildList_SelectionChanged">
+                                            <ListBox.ItemContainerStyle>
+                                                <Style TargetType="ListBoxItem">
+                                                    <Setter Property="Background" Value="Transparent"/>
+                                                    <Setter Property="Foreground" Value="White"/>
+                                                    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                                    <Setter Property="BorderBrush" Value="#0D2236"/>
+                                                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                                    <Setter Property="Padding" Value="10,7"/>
+                                                </Style>
+                                            </ListBox.ItemContainerStyle>
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="{Binding Icon}" FontSize="16"
+                                                                   VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                        <StackPanel VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding Power}" Foreground="White"
+                                                                       FontFamily="Segoe UI" FontSize="12" FontWeight="Bold"/>
+                                                            <TextBlock Text="Might · Superpowered" Foreground="#3A5A7A"
+                                                                       FontFamily="Consolas" FontSize="8"/>
+                                                        </StackPanel>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+                                    </Border>
+                                </Grid>
+
+                                <!-- RIGHT: Build detail -->
+                                <Border Grid.Column="2" Background="#07101E" BorderBrush="#0D2236"
+                                        BorderThickness="1" CornerRadius="4">
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16,14">
+                                        <StackPanel>
+                                            <!-- Header -->
+                                            <Border x:Name="Bd_HeaderBar" CornerRadius="6" Padding="14,10"
+                                                    Background="#101A33" BorderThickness="0,0,0,3"
+                                                    BorderBrush="#FF6B35" Margin="0,0,0,14">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Grid.Column="0" x:Name="Bd_Icon" Text="🔥" FontSize="34"
+                                                               VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                        <TextBlock x:Name="Bd_Title" Text="FIRE"
+                                                                   Foreground="White" FontFamily="Segoe UI"
+                                                                   FontSize="24" FontWeight="Bold"/>
+                                                        <TextBlock x:Name="Bd_Type" Text="Might (Superpowered) DPS"
+                                                                   Foreground="#7A8AA5" FontFamily="Consolas" FontSize="11"/>
+                                                    </StackPanel>
+                                                    <!-- Tier badge for this power+role -->
+                                                    <Border Grid.Column="2" x:Name="Bd_TierBox" CornerRadius="6"
+                                                            Background="#FFD24A" Padding="12,4" VerticalAlignment="Center">
+                                                        <StackPanel HorizontalAlignment="Center">
+                                                            <TextBlock Text="TIER" Foreground="#10151F" FontFamily="Consolas"
+                                                                       FontSize="8" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                                            <TextBlock x:Name="Bd_TierLetter" Text="S" Foreground="#10151F"
+                                                                       FontSize="24" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </Grid>
+                                            </Border>
+                                            <TextBlock x:Name="Bd_TierWhy" Text="" Foreground="#9FB2C9"
+                                                       FontFamily="Segoe UI" FontSize="11" FontStyle="Italic"
+                                                       TextWrapping="Wrap" Margin="2,-8,2,12"/>
+
+                                            <!-- ROLE SELECTOR (DPS / Tank / Heal / Troll) -->
+                                            <StackPanel x:Name="Bd_RoleButtons" Orientation="Horizontal" Margin="0,0,0,12"/>
+
+                                            <!-- POWER PRIORITY — where your effectiveness actually comes from -->
+                                            <Border Background="#101A33" CornerRadius="6" Padding="11,8" Margin="0,0,0,12"
+                                                    BorderThickness="0,0,0,2" BorderBrush="#FBBF24">
+                                                <StackPanel>
+                                                    <TextBlock Text="⚡ WHERE YOUR POWER COMES FROM" Foreground="#FBBF24"
+                                                               FontFamily="Consolas" FontSize="10" FontWeight="Bold" Margin="0,0,0,5"/>
+                                                    <Grid Height="16">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="60*"/>
+                                                            <ColumnDefinition Width="15*"/>
+                                                            <ColumnDefinition Width="25*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <Border Grid.Column="0" Background="#FFD24A" CornerRadius="3,0,0,3">
+                                                            <TextBlock Text="ARTIFACTS ~50-70%" Foreground="#10151F" FontFamily="Consolas"
+                                                                       FontSize="9" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </Border>
+                                                        <Border Grid.Column="1" Background="#34D399" Margin="1,0,1,0">
+                                                            <TextBlock Text="ALLIES" Foreground="#10151F" FontFamily="Consolas"
+                                                                       FontSize="8" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </Border>
+                                                        <Border Grid.Column="2" Background="#60A5FA" CornerRadius="0,3,3,0">
+                                                            <TextBlock Text="SP + GEAR" Foreground="#10151F" FontFamily="Consolas"
+                                                                       FontSize="8" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </Border>
+                                                    </Grid>
+                                                    <TextBlock Text="Artifacts ~50-70% · Allies ~10-20% · Skill Points + Gear = the rest. LEVEL YOUR 5 ARTIFACTS TO RANK 200 FIRST — that's where most of your power is, in every role."
+                                                               Foreground="#9FB2C9" FontFamily="Segoe UI" FontSize="10.5"
+                                                               TextWrapping="Wrap" Margin="0,5,0,0"/>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <!-- ROLE MECHANIC (support roles) -->
+                                            <Border x:Name="Bd_MechBox" Visibility="Collapsed" Background="#101A33"
+                                                    BorderBrush="#60A5FA" BorderThickness="0,0,0,2" CornerRadius="6"
+                                                    Padding="12,8" Margin="0,0,0,14">
+                                                <StackPanel>
+                                                    <TextBlock Text="⚙ ROLE MECHANIC" Foreground="#8FC0FF"
+                                                               FontFamily="Consolas" FontSize="10" FontWeight="Bold" Margin="0,0,0,3"/>
+                                                    <TextBlock x:Name="Bd_Mech" Text="" Foreground="#CFE0F5"
+                                                               FontFamily="Segoe UI" FontSize="12" TextWrapping="Wrap"/>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <!-- PRIMARY TRAY -->
+                                            <TextBlock Text="PRIMARY TRAY  ·  BAR 1" Foreground="{StaticResource Cyan}"
+                                                       FontFamily="Consolas" FontSize="11" FontWeight="Bold" Margin="0,0,0,6"/>
+                                            <ItemsControl x:Name="Bd_Bar1" Margin="0,0,0,12">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border Background="#0D1525" CornerRadius="4" Margin="0,0,0,3" Padding="8,5">
+                                                            <Grid>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="Auto"/>
+                                                                    <ColumnDefinition Width="*"/>
+                                                                    <ColumnDefinition Width="Auto"/>
+                                                                </Grid.ColumnDefinitions>
+                                                                <Border Grid.Column="0" Background="#1E2A44" CornerRadius="3" Width="20" Height="20"
+                                                                        Margin="0,0,8,0">
+                                                                    <TextBlock Text="{Binding Slot}" Foreground="#8AAABB"
+                                                                               FontFamily="Consolas" FontSize="11" FontWeight="Bold"
+                                                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                </Border>
+                                                                <TextBlock Grid.Column="1" Text="{Binding Name}" Foreground="White"
+                                                                           FontFamily="Segoe UI" FontSize="12" FontWeight="SemiBold"
+                                                                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,6,0"/>
+                                                                <Border Grid.Column="2" CornerRadius="3" Padding="5,1" VerticalAlignment="Center"
+                                                                        Background="#0A1119" BorderThickness="1" BorderBrush="{Binding TagBrush}">
+                                                                    <TextBlock Text="{Binding Tag}" Foreground="{Binding TagBrush}"
+                                                                               FontFamily="Consolas" FontSize="8.5" FontWeight="Bold"/>
+                                                                </Border>
+                                                            </Grid>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+
+                                            <!-- SECONDARY TRAY -->
+                                            <TextBlock Text="SECONDARY TRAY  ·  BAR 2  (situational · iconic · augment)"
+                                                       Foreground="#7FA8C9"
+                                                       FontFamily="Consolas" FontSize="11" FontWeight="Bold" Margin="0,0,0,6"/>
+                                            <ItemsControl x:Name="Bd_Bar2" Margin="0,0,0,14">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border Background="#0B1220" CornerRadius="4" Margin="0,0,0,3" Padding="8,5">
+                                                            <Grid>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="Auto"/>
+                                                                    <ColumnDefinition Width="*"/>
+                                                                    <ColumnDefinition Width="Auto"/>
+                                                                </Grid.ColumnDefinitions>
+                                                                <Border Grid.Column="0" Background="#162236" CornerRadius="3" Width="20" Height="20"
+                                                                        Margin="0,0,8,0">
+                                                                    <TextBlock Text="{Binding Slot}" Foreground="#6E8AA6"
+                                                                               FontFamily="Consolas" FontSize="11" FontWeight="Bold"
+                                                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                </Border>
+                                                                <TextBlock Grid.Column="1" Text="{Binding Name}" Foreground="#C2D2E6"
+                                                                           FontFamily="Segoe UI" FontSize="12" FontWeight="SemiBold"
+                                                                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,6,0"/>
+                                                                <Border Grid.Column="2" CornerRadius="3" Padding="5,1" VerticalAlignment="Center"
+                                                                        Background="#0A1119" BorderThickness="1" BorderBrush="{Binding TagBrush}">
+                                                                    <TextBlock Text="{Binding Tag}" Foreground="{Binding TagBrush}"
+                                                                               FontFamily="Consolas" FontSize="8.5" FontWeight="Bold"/>
+                                                                </Border>
+                                                            </Grid>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+
+                                            <!-- ROTATIONS -->
+                                            <TextBlock Text="ROTATION — GROUP (Alerts/Raids)" Foreground="{StaticResource Cyan}"
+                                                       FontFamily="Consolas" FontSize="11" FontWeight="Bold" Margin="0,0,0,4"/>
+                                            <Border Background="#0D1525" CornerRadius="4" Padding="10,7" Margin="0,0,0,8">
+                                                <TextBlock x:Name="Bd_RotGroup" Text="" Foreground="#D7E2F0"
+                                                           FontFamily="Consolas" FontSize="12" TextWrapping="Wrap"/>
+                                            </Border>
+                                            <TextBlock Text="ROTATION — SOLO" Foreground="{StaticResource Cyan}"
+                                                       FontFamily="Consolas" FontSize="11" FontWeight="Bold" Margin="0,0,0,4"/>
+                                            <Border Background="#0D1525" CornerRadius="4" Padding="10,7" Margin="0,0,0,14">
+                                                <TextBlock x:Name="Bd_RotSolo" Text="" Foreground="#D7E2F0"
+                                                           FontFamily="Consolas" FontSize="12" TextWrapping="Wrap"/>
+                                            </Border>
+
+                                            <!-- TIPS -->
+                                            <Border Background="#15241A" BorderBrush="#1EFF00" BorderThickness="0,0,0,2"
+                                                    CornerRadius="6" Padding="12,9" Margin="0,0,0,14">
+                                                <StackPanel>
+                                                    <TextBlock Text="💡 HOW TO PLAY IT" Foreground="#7CFC00"
+                                                               FontFamily="Consolas" FontSize="10" FontWeight="Bold" Margin="0,0,0,4"/>
+                                                    <TextBlock x:Name="Bd_Tips" Text="" Foreground="#CDE8C4"
+                                                               FontFamily="Segoe UI" FontSize="12" TextWrapping="Wrap"/>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <!-- ARTIFACTS · 5 SLOTS (why + substitutes) -->
+                                            <TextBlock Text="ARTIFACTS · 5 SLOTS — #1 POWER SOURCE (~50-70%) · Rank 200 · why &amp; alternatives"
+                                                       Foreground="{StaticResource Gold}"
+                                                       FontFamily="Consolas" FontSize="11" FontWeight="Bold" Margin="0,0,0,6"/>
+                                            <ItemsControl x:Name="Bd_Artifacts" Margin="0,0,0,14">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border Background="#0D1525" CornerRadius="4" Margin="0,0,0,4" Padding="9,6">
+                                                            <Grid>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="Auto"/>
+                                                                    <ColumnDefinition Width="*"/>
+                                                                </Grid.ColumnDefinitions>
+                                                                <Border Grid.Column="0" Background="#3A2E12" CornerRadius="3"
+                                                                        Padding="5,1" Margin="0,0,8,0" VerticalAlignment="Top">
+                                                                    <TextBlock Text="{Binding Slot}" Foreground="#FBBF24"
+                                                                               FontFamily="Consolas" FontSize="10" FontWeight="Bold"/>
+                                                                </Border>
+                                                                <StackPanel Grid.Column="1">
+                                                                    <TextBlock Text="{Binding Name}" Foreground="#FFD24A"
+                                                                               FontFamily="Segoe UI" FontSize="12" FontWeight="Bold"/>
+                                                                    <TextBlock Text="{Binding Why}" Foreground="#AEBFD4"
+                                                                               FontFamily="Segoe UI" FontSize="11" TextWrapping="Wrap" Margin="0,1,0,0"/>
+                                                                    <TextBlock Text="{Binding AltLabel}" Foreground="#6E8AA6"
+                                                                               FontFamily="Consolas" FontSize="10" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                                                </StackPanel>
+                                                            </Grid>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+
+                                            <!-- ICONIC POWERS (general — anyone can slot): best-in-slot + alternative -->
+                                            <TextBlock Text="ICONIC POWERS — best in slot + alternative (general, anyone can slot)"
+                                                       Foreground="#C084FC"
+                                                       FontFamily="Consolas" FontSize="11" FontWeight="Bold" Margin="0,0,0,6"/>
+                                            <ItemsControl x:Name="Bd_Iconics" Margin="0,0,0,14">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border Background="#140D20" CornerRadius="4" Margin="0,0,0,4" Padding="9,6">
+                                                            <Grid>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="Auto"/>
+                                                                    <ColumnDefinition Width="*"/>
+                                                                </Grid.ColumnDefinitions>
+                                                                <Border Grid.Column="0" Background="#3A1E5C" CornerRadius="3"
+                                                                        Padding="5,1" Margin="0,0,8,0" VerticalAlignment="Top">
+                                                                    <TextBlock Text="BiS" Foreground="#D7B6FF"
+                                                                               FontFamily="Consolas" FontSize="9" FontWeight="Bold"/>
+                                                                </Border>
+                                                                <StackPanel Grid.Column="1">
+                                                                    <TextBlock Text="{Binding Name}" Foreground="#D7B6FF"
+                                                                               FontFamily="Segoe UI" FontSize="12" FontWeight="Bold"/>
+                                                                    <TextBlock Text="{Binding Why}" Foreground="#AEBFD4"
+                                                                               FontFamily="Segoe UI" FontSize="11" TextWrapping="Wrap" Margin="0,1,0,0"/>
+                                                                    <TextBlock Text="{Binding AltLabel}" Foreground="#6E8AA6"
+                                                                               FontFamily="Consolas" FontSize="10" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                                                </StackPanel>
+                                                            </Grid>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+
+                                            <!-- ALLIES (1 Combat + 2 Support) — synergize with this role's BiS -->
+                                            <TextBlock Text="ALLIES — #2 POWER SOURCE (~10-20%) · 1 Combat + 2 Support (synergize with this build)"
+                                                       Foreground="#34D399"
+                                                       FontFamily="Consolas" FontSize="11" FontWeight="Bold" Margin="0,0,0,6"/>
+                                            <ItemsControl x:Name="Bd_Allies" Margin="0,0,0,4">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border Background="#0B1A14" CornerRadius="4" Margin="0,0,0,4" Padding="9,6">
+                                                            <Grid>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="Auto"/>
+                                                                    <ColumnDefinition Width="*"/>
+                                                                </Grid.ColumnDefinitions>
+                                                                <Border Grid.Column="0" Background="#13402C" CornerRadius="3"
+                                                                        Padding="5,1" Margin="0,0,8,0" VerticalAlignment="Top">
+                                                                    <TextBlock Text="{Binding Slot}" Foreground="#6EE7B7"
+                                                                               FontFamily="Consolas" FontSize="9" FontWeight="Bold"/>
+                                                                </Border>
+                                                                <StackPanel Grid.Column="1">
+                                                                    <TextBlock Text="{Binding Name}" Foreground="#6EE7B7"
+                                                                               FontFamily="Segoe UI" FontSize="12" FontWeight="Bold"/>
+                                                                    <TextBlock Text="{Binding Why}" Foreground="#AEBFD4"
+                                                                               FontFamily="Segoe UI" FontSize="11" TextWrapping="Wrap" Margin="0,1,0,0"/>
+                                                                    <TextBlock Text="{Binding AltLabel}" Foreground="#6E8AA6"
+                                                                               FontFamily="Consolas" FontSize="10" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                                                </StackPanel>
+                                                            </Grid>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                            <TextBlock Text="Legendary allies (Cyborg, Professor Zoom, The Flash) get a 2nd Support Ability — pick passives matching your role + one that cuts your Combat Ally cooldown. Ally meta is niche — verify in-game."
+                                                       Foreground="#3A5A7A" FontFamily="Consolas" FontSize="9"
+                                                       TextWrapping="Wrap" Margin="0,0,0,12"/>
+
+                                            <!-- MODS -->
+                                            <TextBlock Text="MODS" Foreground="{StaticResource Gold}"
+                                                       FontFamily="Consolas" FontSize="11" FontWeight="Bold" Margin="0,0,0,6"/>
+                                            <ItemsControl x:Name="Bd_Mods" Margin="0,0,0,12">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding}" Foreground="#D7E2F0"
+                                                                   FontFamily="Segoe UI" FontSize="11" TextWrapping="Wrap"
+                                                                   Margin="0,0,0,5"/>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+
+                                            <!-- SKILL POINTS -->
+                                            <TextBlock Text="SKILL POINTS  ( + gear = the remaining power )" Foreground="{StaticResource Gold}"
+                                                       FontFamily="Consolas" FontSize="11" FontWeight="Bold" Margin="0,0,0,4"/>
+                                            <Border Background="#0D1525" CornerRadius="4" Padding="10,7" Margin="0,0,0,12">
+                                                <TextBlock x:Name="Bd_Stats" Text="" Foreground="#D7E2F0"
+                                                           FontFamily="Consolas" FontSize="11" TextWrapping="Wrap"/>
+                                            </Border>
+
+                                            <TextBlock x:Name="Bd_Source" Text="" Foreground="#3A5A7A"
+                                                       FontFamily="Consolas" FontSize="9" TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                    </ScrollViewer>
+                                </Border>
+                            </Grid>
+                        </TabItem>
+
+                        <TabItem Header="🏆  TIERS" x:Name="TabTiers">
+                            <Grid Margin="10,10,10,10">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- Role selector -->
+                                <WrapPanel Grid.Row="0" x:Name="Tr_RoleButtons" Orientation="Horizontal" Margin="0,0,0,8">
+                                    <Button Content="🔥 DPS"      Tag="DPS"     Click="TierRole_Click" Style="{StaticResource ActionButton}" Margin="0,0,6,6" Padding="11,6"/>
+                                    <Button Content="🛡 TANK"     Tag="TANK"    Click="TierRole_Click" Style="{StaticResource ActionButton}" Margin="0,0,6,6" Padding="11,6"/>
+                                    <Button Content="✚ HEAL"      Tag="HEAL"    Click="TierRole_Click" Style="{StaticResource ActionButton}" Margin="0,0,6,6" Padding="11,6"/>
+                                    <Button Content="〰 TROLL"     Tag="TROLL"   Click="TierRole_Click" Style="{StaticResource ActionButton}" Margin="0,0,6,6" Padding="11,6"/>
+                                    <Button Content="🛡⚔ B.TANK"  Tag="BTANK"   Click="TierRole_Click" Style="{StaticResource ActionButton}" Margin="0,0,6,6" Padding="11,6"/>
+                                    <Button Content="✚⚔ B.HEAL"   Tag="BHEAL"   Click="TierRole_Click" Style="{StaticResource ActionButton}" Margin="0,0,6,6" Padding="11,6"/>
+                                    <Button Content="〰⚔ B.TROLL"  Tag="BTROLL"  Click="TierRole_Click" Style="{StaticResource ActionButton}" Margin="0,0,6,6" Padding="11,6"/>
+                                    <Button Content="★ OVERALL"   Tag="OVERALL" Click="TierRole_Click" Style="{StaticResource ActionButton}" Margin="0,0,6,6" Padding="11,6"/>
+                                </WrapPanel>
+
+                                <!-- Note / disclaimer -->
+                                <Border Grid.Row="1" Background="#0A1525" CornerRadius="5" Padding="10,7" Margin="0,0,0,8">
+                                    <TextBlock x:Name="Tr_Note" Text="" Foreground="#9FB2C9"
+                                               FontFamily="Segoe UI" FontSize="11" TextWrapping="Wrap"/>
+                                </Border>
+
+                                <!-- Tier bands — stretch to share the full height so the tab fills the window -->
+                                <ItemsControl Grid.Row="2" x:Name="Tr_Bands" HorizontalContentAlignment="Stretch">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <UniformGrid Columns="1"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="#0A1525" BorderBrush="#0D2236" BorderThickness="1"
+                                                        CornerRadius="6" Margin="0,0,0,8" Padding="12">
+                                                    <Grid VerticalAlignment="Center">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="60"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <Border Grid.Column="0" CornerRadius="6" Background="{Binding TierBrush}"
+                                                                Width="52" Height="52" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding Tier}" Foreground="Black" FontSize="26"
+                                                                       FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </Border>
+                                                        <StackPanel Grid.Column="1" Margin="11,0,0,0" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding Label}" Foreground="{Binding TierBrush}"
+                                                                       FontFamily="Consolas" FontSize="11" FontWeight="Bold" Margin="0,1,0,6"/>
+                                                            <ItemsControl ItemsSource="{Binding Entries}">
+                                                                <ItemsControl.ItemsPanel>
+                                                                    <ItemsPanelTemplate>
+                                                                        <WrapPanel Orientation="Horizontal"/>
+                                                                    </ItemsPanelTemplate>
+                                                                </ItemsControl.ItemsPanel>
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate>
+                                                                        <!-- Card flows into more columns as the window widens -->
+                                                                        <Border Width="360" Background="#0D1828" CornerRadius="5"
+                                                                                Margin="0,0,8,8" Padding="10,7">
+                                                                            <StackPanel>
+                                                                                <StackPanel Orientation="Horizontal">
+                                                                                    <TextBlock Text="{Binding Icon}" FontSize="18"
+                                                                                               Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                                                                    <TextBlock Text="{Binding Power}" Foreground="White"
+                                                                                               FontFamily="Segoe UI" FontSize="14" FontWeight="Bold"
+                                                                                               VerticalAlignment="Center"/>
+                                                                                </StackPanel>
+                                                                                <TextBlock Text="{Binding Why}" Foreground="#9FB2C9"
+                                                                                           FontFamily="Segoe UI" FontSize="12" TextWrapping="Wrap"
+                                                                                           Margin="0,4,0,0"/>
+                                                                            </StackPanel>
+                                                                        </Border>
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+                                                            </ItemsControl>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <TextBlock Grid.Row="3" x:Name="Tr_Source" Text=""
+                                           Foreground="#3A5A7A" FontFamily="Consolas" FontSize="9"
+                                           TextWrapping="Wrap" Margin="0,6,0,0"/>
+                            </Grid>
+                        </TabItem>
         </TabControl>
     </Grid>
 </Window>
+
 
 
 

@@ -17,6 +17,13 @@ namespace DCUOTracker.Services
         public int  ScanWidth  { get; set; } = 200;
         public int  ScanHeight { get; set; } = 30;
 
+        // Scorecard OCR region (in-game Leaderboard panel → group DPS)
+        public int ScoreX      { get; set; } = -1;
+        public int ScoreY      { get; set; } = -1;
+        public int ScoreWidth  { get; set; } = 900;
+        public int ScoreHeight { get; set; } = 600;
+        public bool HasScoreRegion => ScoreX >= 0 && ScoreY >= 0;
+
         // LFG timer persistence (timer survives app restart)
         public DateTime? LastLfgPostUtc { get; set; } = null;
 

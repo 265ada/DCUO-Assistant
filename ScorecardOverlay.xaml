@@ -1,0 +1,79 @@
+<Window x:Class="DCUOTracker.ScorecardOverlay"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Group Scorecard" Width="340"
+        SizeToContent="Height"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ResizeMode="NoResize"
+        Left="40" Top="260">
+
+    <Border Background="#E6050A18" CornerRadius="8"
+            BorderBrush="#00d4ff" BorderThickness="1"
+            MouseDown="Border_MouseDown">
+        <StackPanel Margin="9,7,9,9">
+
+            <!-- Title -->
+            <Grid Margin="0,0,0,3">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="👥 GROUP DPS — SCORECARD"
+                           Foreground="#00d4ff" FontSize="11" FontWeight="Bold"
+                           FontFamily="Segoe UI" VerticalAlignment="Center"/>
+                <Button Grid.Column="1" Content="✕" Click="Close_Click"
+                        Background="Transparent" BorderThickness="0"
+                        Foreground="#ff4444" FontSize="10" Cursor="Hand" Padding="3,1"/>
+            </Grid>
+
+            <TextBlock x:Name="SubLabel" Text="" Foreground="#7A8AA5"
+                       FontSize="9" FontFamily="Consolas" Margin="0,0,0,5"/>
+
+            <ItemsControl x:Name="ScoreList">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="0,1,0,2">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="4"/>
+                            </Grid.RowDefinitions>
+                            <Grid Grid.Row="0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="20"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="62"/>
+                                    <ColumnDefinition Width="58"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="{Binding Rank}" Foreground="#5A6B85"
+                                           FontFamily="Consolas" FontSize="10" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1" Text="{Binding Name}" Foreground="{Binding NameColor}"
+                                           FontFamily="Segoe UI" FontSize="11" FontWeight="Bold"
+                                           TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="2" Text="{Binding DpsLabel}" Foreground="{Binding BarColor}"
+                                           FontFamily="Consolas" FontSize="11" FontWeight="Bold"
+                                           TextAlignment="Right" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="3" Text="{Binding DamageLabel}" Foreground="#8B9FBF"
+                                           FontFamily="Consolas" FontSize="9"
+                                           TextAlignment="Right" VerticalAlignment="Center"/>
+                            </Grid>
+                            <Grid Grid.Row="1" Background="#111827">
+                                <Rectangle HorizontalAlignment="Left" Width="{Binding BarWidth}"
+                                           Fill="{Binding BarColor}" Opacity="0.8"
+                                           Height="4" RadiusX="2" RadiusY="2"/>
+                            </Grid>
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <TextBlock x:Name="HintLabel"
+                       Text="DPS = damage ÷ time since start.  Open Scorecard → press F10 to refresh."
+                       Foreground="#3A5A7A" FontSize="8" FontFamily="Consolas"
+                       TextWrapping="Wrap" Margin="0,5,0,0"/>
+        </StackPanel>
+    </Border>
+</Window>

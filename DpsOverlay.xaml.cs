@@ -33,6 +33,8 @@ namespace DCUOTracker
         public string PctLabel   { get; init; } = "";
         public WpfMedia.Brush BarColor { get; init; } = WpfMedia.Brushes.Gray;
         public WpfMedia.Brush CatColor { get; init; } = WpfMedia.Brushes.Gray;
+        public double BarWidth { get; init; } = 0;
+        public string CritLabel { get; init; } = "";
     }
 
     public partial class DpsOverlay : Window
@@ -42,6 +44,12 @@ namespace DCUOTracker
         private bool _showRoleIcons = true, _showPowerIcons = true;
         private FightData? _currentFight;
         private PlayerStats? _selectedPlayer;
+
+        // Personal-best parse tracking
+        private readonly Services.ParseBests _bests = new();
+        private string _pbKey = "";
+        private string _pbAnnounced = "";
+        private double _pbSnapshot;
 
         private static readonly WpfMedia.Brush[] _palette = [
             new WpfMedia.SolidColorBrush(WpfMedia.Color.FromRgb(255,107,53)),
@@ -80,6 +88,8 @@ private void BuildContextMenu()
     _miSuper      = MakeMenuItem("Show Supercharge",      true,  MenuShowSupercharge_Click);
     _miRoles      = MakeMenuItem("Show Role Icons",       true,  MenuShowRoles_Click);
     _miPowerIcons = MakeMenuItem("Show Power Type Icons", true,  MenuShowPowerType_Click);
+    var miCopy    = MakeMenuItem("Copy Parse to Clipboard", false, MenuCopyParse_Click);
+    miCopy.Foreground = new WpfMedia.SolidColorBrush(WpfMedia.Color.FromRgb(0,212,255));
     var miReset   = MakeMenuItem("Reset Fight",           false, MenuResetFight_Click);
     miReset.Foreground = new WpfMedia.SolidColorBrush(WpfMedia.Color.FromRgb(255,107,53));
 
@@ -90,6 +100,7 @@ private void BuildContextMenu()
     _ctxMenu.Items.Add(_miRoles);
     _ctxMenu.Items.Add(_miPowerIcons);
     _ctxMenu.Items.Add(new System.Windows.Controls.Separator());
+    _ctxMenu.Items.Add(miCopy);
     _ctxMenu.Items.Add(miReset);
 
     ContextMenu = _ctxMenu;
@@ -102,18 +113,36 @@ private static System.Windows.Controls.MenuItem MakeMenuItem(string header, bool
     return mi;
 }
 
+        // My character name — set from MainWindow so overlay can auto-select
+        public string MyCharacterName { get; set; } = "";
+
         public void UpdateFight(FightData fight)
         {
             Dispatcher.Invoke(() => {
                 _currentFight = fight;
-                FightLabel.Text = $"{(fight.IsActive?"⚔":"✓")} {Trunc(fight.FightName,20)}";
+                string tag = fight.IsSparringParse ? "⊕ PARSE · " : "";
+                FightLabel.Text = $"{(fight.IsActive?"⚔":"✓")} {tag}{Trunc(fight.FightName, tag==""?20:14)}";
                 StatsPanel.Visibility = Visibility.Visible;
                 TotalDmgLabel.Text = Fmt(fight.TotalGroupDamage);
                 MaxHitLabel.Text   = $"Max: {Fmt(fight.MaxHit)}";
                 DurationLabel.Text = FmtT(fight.Duration);
                 RebuildList(fight);
+
+                // Auto-show own player's abilities without requiring a click
                 if (_selectedPlayer != null && fight.Players.ContainsKey(_selectedPlayer.Name))
                     ShowAbilities(_selectedPlayer);
+                else if (!string.IsNullOrEmpty(MyCharacterName) && fight.Players.TryGetValue(MyCharacterName, out var me))
+                {
+                    _selectedPlayer = me;
+                    ShowAbilities(me);
+                }
+                else if (_selectedPlayer == null && fight.Players.Count > 0)
+                {
+                    // Fallback: show top DPS player's abilities
+                    _selectedPlayer = fight.RankedByDamage.First();
+                    ShowAbilities(_selectedPlayer);
+                }
+
                 Show();
             });
         }
@@ -123,7 +152,7 @@ private static System.Windows.Controls.MenuItem MakeMenuItem(string header, bool
             Dispatcher.Invoke(() => {
                 _currentFight = null; _selectedPlayer = null;
                 FightLabel.Text = "⚔ NO FIGHT";
-                StatsPanel.Visibility = AbilityPanel.Visibility = Visibility.Collapsed;
+                StatsPanel.Visibility = AbilityPanel.Visibility = MyStatsPanel.Visibility = Visibility.Collapsed;
                 PlayerList.ItemsSource = null;
             });
         }
@@ -157,21 +186,131 @@ private static System.Windows.Controls.MenuItem MakeMenuItem(string header, bool
             var abs = player.Abilities.Values
                 .Where(a => (a.Category=="Power"&&_showPowers)||(a.Category=="Weapon"&&_showWeapon)||(a.Category=="Supercharge"&&_showSupercharge))
                 .OrderByDescending(a=>a.TotalDmg).ToList();
-            long tot = abs.Sum(a=>a.TotalDmg);
-            AbilityPowerIcon.Text = PowerDetector.PowerIcon(player.PowerType);
-            AbilityPlayerLabel.Text = $"{Trunc(player.Name,14).ToUpper()} POWERS";
+            long tot   = abs.Sum(a=>a.TotalDmg);
+            double dur = (_currentFight?.Duration.TotalSeconds ?? 1).Clamp(1, 9999);
+
+            AbilityPowerIcon.Text   = PowerDetector.PowerIcon(player.PowerType);
+            AbilityPlayerLabel.Text = $"{Trunc(player.Name,14).ToUpper()} ROTATION";
+
+            long maxDmg = abs.Count > 0 ? abs[0].TotalDmg : 1;
             AbilityList.ItemsSource = abs.Select((a,i) => {
-                double pct = tot>0?(double)a.TotalDmg/tot:0;
-                WpfMedia.Brush cat = a.Category switch {
-                    "Weapon" => new WpfMedia.SolidColorBrush(WpfMedia.Color.FromRgb(156,163,175)),
-                    "Supercharge" => new WpfMedia.SolidColorBrush(WpfMedia.Color.FromRgb(251,191,36)),
-                    _ => _palette[i%_palette.Length]
+                double pct      = tot>0?(double)a.TotalDmg/tot:0;
+                double critPct  = a.Hits>0?(double)a.CritHits/a.Hits:0;
+                double hitsMin  = a.Hits / (dur/60.0);
+
+                // Efficiency colors — bright enough to see on dark background
+                WpfMedia.Brush effColor = pct switch {
+                    >0.20 => new WpfMedia.SolidColorBrush(WpfMedia.Color.FromRgb(0,255,120)),    // top — bright green
+                    >0.08 => new WpfMedia.SolidColorBrush(WpfMedia.Color.FromRgb(255,200,0)),    // mid — bright gold
+                    _     => new WpfMedia.SolidColorBrush(WpfMedia.Color.FromRgb(255,80,80))     // low — bright red
                 };
-                return new AbilityRow { Name=a.Name, AvgLabel=Fmt(a.AvgHit), TotalLabel=Fmt(a.TotalDmg),
-                    PctLabel=$"{pct:P0}", BarColor=_palette[i%_palette.Length], CatColor=cat };
+                // Bar width proportional to damage share (max ability = full 255px)
+                double barW = maxDmg > 0 ? (double)a.TotalDmg / maxDmg * 255 : 0;
+
+                WpfMedia.Brush catColor = a.Category switch {
+                    "Weapon"      => new WpfMedia.SolidColorBrush(WpfMedia.Color.FromRgb(156,163,175)),
+                    "Supercharge" => new WpfMedia.SolidColorBrush(WpfMedia.Color.FromRgb(251,191,36)),
+                    _             => effColor
+                };
+
+                string critStr   = a.Hits > 1 && critPct > 0 ? $"{critPct:P0} crit · {a.Hits}×" : $"{a.Hits}×";
+
+                return new AbilityRow {
+                    Name       = a.Name,
+                    AvgLabel   = Fmt(a.AvgHit),
+                    TotalLabel = Fmt(a.TotalDmg),
+                    PctLabel   = $"{pct:P0}",
+                    BarColor   = effColor,
+                    CatColor   = catColor,
+                    BarWidth   = Math.Max(2, barW),
+                    CritLabel  = critStr
+                };
             }).ToList();
             AbilityPanel.Visibility = Visibility.Visible;
+
+            UpdateMyStats(player);
         }
+
+        // Populate the MY PERFORMANCE strip for the selected player
+        private void UpdateMyStats(PlayerStats p)
+        {
+            // Sustained parse DPS = total damage / engaged time (first hit -> last hit)
+            DateTime end   = p.LastHitTime  ?? _currentFight?.EndTime ?? DateTime.Now;
+            DateTime start = p.FirstHitTime ?? end;
+            double dur = (end - start).TotalSeconds;
+            double sustained = dur > 1 ? p.TotalDamage / dur : p.TotalDamage;
+
+            MyDpsLabel.Text   = Fmt((long)sustained);
+            MyBurstLabel.Text = Fmt((long)p.BurstDps);
+
+            double act = p.ActivityPercent;
+            MyActivityLabel.Text = $"{act:F0}%";
+            var g = Models.DpsGrade.ForActivity(act);
+            MyActivityGrade.Text = g.Letter;
+            MyActivityGradeBox.Background = BrushFromHex(g.Hex);
+            MyActivityGrade.ToolTip = g.Label;
+
+            MyCritLabel.Text = $"{p.CritPercent:F0}%";
+            MyApmLabel.Text  = $"{p.Apm:F0}";
+
+            // Might (power) / Super / Precision (weapon) split bar
+            long tot = p.TotalDamage;
+            if (tot > 0)
+            {
+                double w = SplitCanvas.ActualWidth > 10 ? SplitCanvas.ActualWidth : 256;
+                double powerOnly = (double)p.PowerDamage  / tot;
+                double super     = (double)p.SuperDamage  / tot;
+                double weapon    = (double)p.WeaponDamage / tot;
+                double mW = powerOnly * w, sW = super * w, pW = weapon * w;
+                MightSeg.Width = mW;
+                SuperSeg.Width = sW; System.Windows.Controls.Canvas.SetLeft(SuperSeg, mW);
+                PrecSeg.Width  = pW; System.Windows.Controls.Canvas.SetLeft(PrecSeg, mW + sW);
+                MySplitLabel.Text =
+                    $"MIGHT {(powerOnly + super):P0}  ·  SC {super:P0}  ·  PREC {weapon:P0}";
+            }
+
+            // Personal best (per power) — compare against snapshot taken at fight start
+            string power = p.PowerType.ToString();
+            string key   = (_currentFight?.StartTime.Ticks ?? 0) + "|" + power;
+            if (key != _pbKey) { _pbKey = key; _pbSnapshot = _bests.Get(power).Burst; }
+            _bests.Report(power, p.BurstDps, sustained); // persist climbing best
+            if (p.Hits > 12)
+            {
+                if (_pbSnapshot <= 0)
+                    SetBest($"First {power} parse — baseline {Fmt((long)p.BurstDps)} burst", "#7A8AA5");
+                else if (p.BurstDps > _pbSnapshot)
+                {
+                    SetBest($"🏆 NEW BURST RECORD!  beat {Fmt((long)_pbSnapshot)}", "#FFD24A");
+                    if (_pbAnnounced != _pbKey) { _pbAnnounced = _pbKey; Services.SoundAlert.PlayPersonalBest(); }
+                }
+                else
+                {
+                    double ratio = p.BurstDps / _pbSnapshot;
+                    SetBest($"Burst {ratio:P0} of best ({Fmt((long)_pbSnapshot)})",
+                            ratio >= 0.95 ? "#7CFC00" : "#7A8AA5");
+                }
+            }
+            else MyBestLabel.Text = "";
+
+            // Live coach tip — adaptive advice for improving DPS
+            var tip = Models.Coach.Analyze(p, _currentFight?.IsSparringParse ?? false);
+            CoachLabel.Text = tip.Label;
+            CoachText.Text  = tip.Text;
+            var tipBrush = BrushFromHex(tip.Hex);
+            CoachLabel.Foreground = tipBrush;
+            CoachBox.BorderBrush  = tipBrush;
+
+            MyStatsPanel.Visibility = Visibility.Visible;
+        }
+
+        private void SetBest(string text, string hex)
+        {
+            MyBestLabel.Text = text;
+            MyBestLabel.Foreground = BrushFromHex(hex);
+        }
+
+        private static WpfMedia.Brush BrushFromHex(string hex) =>
+            (WpfMedia.Brush)new WpfMedia.BrushConverter().ConvertFromString(hex)!;
 
         private void CloseAbility_Click(object s, RoutedEventArgs e) { AbilityPanel.Visibility=Visibility.Collapsed; _selectedPlayer=null; }
         private void MenuShowPowers_Click(object s, RoutedEventArgs e) { _showPowers=_miPowers.IsChecked; RefreshAbs(); }
@@ -180,6 +319,29 @@ private static System.Windows.Controls.MenuItem MakeMenuItem(string header, bool
         private void MenuShowRoles_Click(object s, RoutedEventArgs e) { _showRoleIcons=_miRoles.IsChecked; if(_currentFight!=null) RebuildList(_currentFight); }
         private void MenuShowPowerType_Click(object s, RoutedEventArgs e) { _showPowerIcons=_miPowerIcons.IsChecked; if(_currentFight!=null) RebuildList(_currentFight); }
         private void MenuResetFight_Click(object s, RoutedEventArgs e) => ClearFight();
+
+        // Copy a clean, shareable parse summary to the clipboard
+        private void MenuCopyParse_Click(object s, RoutedEventArgs e)
+        {
+            var p = _selectedPlayer; var f = _currentFight;
+            if (p == null || f == null) return;
+            DateTime end = p.LastHitTime ?? f.EndTime ?? DateTime.Now;
+            DateTime start = p.FirstHitTime ?? end;
+            double dur = (end - start).TotalSeconds;
+            double sustained = dur > 1 ? p.TotalDamage / dur : p.TotalDamage;
+            var top = p.Abilities.Values.OrderByDescending(a => a.TotalDmg).Take(3)
+                .Select(a => $"{a.Name} {(p.TotalDamage > 0 ? (double)a.TotalDmg / p.TotalDamage : 0):P0}");
+            var g = Models.DpsGrade.ForActivity(p.ActivityPercent);
+            string txt =
+                $"DCUO Parse — {p.Name} ({p.PowerType})\n" +
+                $"DPS {Fmt((long)sustained)} sustained · Burst {Fmt((long)p.BurstDps)}\n" +
+                $"Activity {p.ActivityPercent:F0}% (grade {g.Letter}) · Crit {p.CritPercent:F0}% · APM {p.Apm:F0}\n" +
+                $"Might {p.MightPct:F0}% · SC {p.SuperPct:F0}% · Prec {p.PrecisionPct:F0}%\n" +
+                $"Top: {string.Join(" · ", top)}\n" +
+                $"Duration {FmtT(f.Duration)}{(f.IsSparringParse ? " · sparring parse" : "")} · via DCUO QoL";
+            try { System.Windows.Clipboard.SetText(txt); }
+            catch (Exception ex) { Logger.Error("CopyParse", ex); }
+        }
         private void RefreshAbs() { if(_selectedPlayer!=null&&AbilityPanel.Visibility==Visibility.Visible) ShowAbilities(_selectedPlayer); }
 
         private static string Fmt(long n) => n>=1_000_000_000?$"{n/1_000_000_000.0:F1}B":n>=1_000_000?$"{n/1_000_000.0:F1}M":n>=1_000?$"{n/1_000.0:F1}k":n.ToString();
@@ -195,9 +357,9 @@ private static System.Windows.Controls.MenuItem MakeMenuItem(string header, bool
         public void ForceClose() { _forceClose=true; Close(); }
         protected override void OnClosing(System.ComponentModel.CancelEventArgs e) { if(_forceClose)return; e.Cancel=true; Hide(); }
     }
+    internal static class DoubleExt
+    {
+        public static double Clamp(this double v, double min, double max) =>
+            v < min ? min : v > max ? max : v;
+    }
 }
-
-
-
-
-

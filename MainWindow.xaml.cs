@@ -21,10 +21,13 @@ namespace DCUOTracker
         private readonly DpsParser            _dpsParser;
         private readonly DpsOverlay          _dpsOverlay;
         private readonly PartyFrameScanner   _partyScanner;
+        private readonly ScorecardScanner    _scorecardScanner;
+        private readonly ScorecardOverlay    _scorecardOverlay;
         private readonly FightReportStore    _reportStore;
         private readonly GameForegroundWatcher _fgWatcher;
         private readonly AppWatchdog         _watchdog;
         private GlobalHotkey?                _hideAllHotkey;
+        private GlobalHotkey?                _scanScorecardHotkey;
         private readonly ObservableCollection<NthMetalDrop> _sessionDrops = new();
         private readonly ObservableCollection<NthMetalDrop> _partyDrops  = new();
         private bool _soundEnabled = true;
@@ -79,11 +82,15 @@ namespace DCUOTracker
                     new Action(LoadAllTimeDrops));
 
             // DPS parser + overlay + fight reports
-            _dpsOverlay   = new DpsOverlay();
+            _dpsOverlay   = new DpsOverlay { MyCharacterName = _settings.MyCharacterName };
             _dpsParser    = new DpsParser(LogPath);
             _partyScanner = new PartyFrameScanner();
+            _scorecardScanner = new ScorecardScanner();
+            _scorecardOverlay = new ScorecardOverlay { MyCharacterName = _settings.MyCharacterName };
+            if (_settings.HasScoreRegion)
+                _scorecardScanner.SetScanRegion(_settings.ScoreX, _settings.ScoreY,
+                    _settings.ScoreWidth, _settings.ScoreHeight);
             _reportStore  = new FightReportStore();
-            LoadReports(); // must be after _reportStore init
             _watchdog     = new AppWatchdog();
 
             // Foreground watcher â€” auto-hide overlays when not in game
@@ -173,6 +180,9 @@ namespace DCUOTracker
             // Restore LFG timer if still active from before restart
             if (_settings.LastLfgPostUtc.HasValue)
                 _chatTracker.RestoreLfgTimer(_settings.LastLfgPostUtc.Value);
+
+            // Load reports once window is fully rendered
+            Loaded += (_, _) => { try { LoadReports(); } catch { } };
 
             // OCR verify on every Enter press â€” corrects open/closed state
             _chatTracker.OnEnterPressed = () => _lfgDetector.TriggerEnterScan();
@@ -480,6 +490,7 @@ namespace DCUOTracker
         private void SoundToggle_Click(object sender, RoutedEventArgs e)
         {
             _soundEnabled = !_soundEnabled;
+            DCUOTracker.Services.SoundAlert.Enabled = _soundEnabled;
             SoundToggleBtn_Icon.Text = "◉";
             SoundToggleBtn_Icon.Foreground = _soundEnabled
                 ? new WpfBrush(WpfColor.FromRgb(255, 255, 255))
@@ -539,9 +550,28 @@ namespace DCUOTracker
         private void DpsOverlay_Click(object sender, RoutedEventArgs e)
         {
             if (_dpsOverlay.IsVisible)
+            {
                 _dpsOverlay.Hide();
+                SetDpsButtonActive(false);
+            }
             else
+            {
                 _dpsOverlay.Show();
+                SetDpsButtonActive(true);
+            }
+        }
+
+        private void SetDpsButtonActive(bool active)
+        {
+            DpsBtn_Icon.Foreground  = active
+                ? new WpfBrush(WpfColor.FromRgb(255, 179, 0))
+                : new WpfBrush(WpfColor.FromRgb(58, 42, 0));
+            DpsBtn_Label.Foreground = active
+                ? new WpfBrush(WpfColor.FromRgb(255, 255, 255))
+                : new WpfBrush(WpfColor.FromRgb(85, 85, 85));
+            DpsBtn_Sub.Foreground   = active
+                ? new WpfBrush(WpfColor.FromRgb(170, 170, 170))
+                : new WpfBrush(WpfColor.FromRgb(51, 51, 51));
         }
 
         private async void SelectPartyRegion_Click(object sender, RoutedEventArgs e)
@@ -568,6 +598,61 @@ namespace DCUOTracker
                 SelectPartyRegionBtn.Content = "ðŸ‘¥ Party Frame Set âœ“";
                 _partyScanner.TriggerScan();
             }
+        }
+
+        // Calibrate the in-game Scorecard → Leaderboard panel region (group DPS via OCR)
+        private async void SelectScorecardRegion_Click(object sender, RoutedEventArgs e)
+        {
+            var tcs = new System.Threading.Tasks.TaskCompletionSource<System.Drawing.Rectangle?>();
+            var t = new System.Threading.Thread(() =>
+            {
+                try
+                {
+                    System.Windows.Forms.Application.EnableVisualStyles();
+                    var selector = new Services.RegionSelector();
+                    selector.ShowDialog();
+                    tcs.SetResult(selector.SelectedRegion);
+                }
+                catch (Exception ex) { Logger.Error("SelectScorecardRegion", ex); tcs.SetResult(null); }
+            });
+            t.SetApartmentState(System.Threading.ApartmentState.STA);
+            t.Start();
+
+            var result = await tcs.Task;
+            if (result is { } r)
+            {
+                _scorecardScanner.SetScanRegion(r.X, r.Y, r.Width, r.Height);
+                _settings.ScoreX = r.X; _settings.ScoreY = r.Y;
+                _settings.ScoreWidth = r.Width; _settings.ScoreHeight = r.Height;
+                _settings.Save();
+                ScorecardRegionBtn.Content = "📊 Scorecard ✓";
+                await ScanScorecardAsync();   // immediate test scan
+            }
+        }
+
+        // OCR the scorecard now and show the ranked group-DPS overlay (F10)
+        private async System.Threading.Tasks.Task ScanScorecardAsync()
+        {
+            if (!_scorecardScanner.HasRegion)
+            {
+                System.Windows.MessageBox.Show(
+                    "First calibrate the Scorecard region: click 📊 SCORECARD, then drag a box over the in-game Scorecard → Leaderboard panel (include the player rows and the 'Time Since Start' line).\n\nThen open that panel in-game and press F10.",
+                    "Scorecard OCR", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                return;
+            }
+            try
+            {
+                var res = await _scorecardScanner.ScanAsync();
+                if (res == null || res.Entries.Count == 0)
+                {
+                    StatusText.Text = "SCORECARD: nothing read — open Leaderboard tab & recalibrate";
+                    return;
+                }
+                _scorecardOverlay.MyCharacterName = _settings.MyCharacterName;
+                _scorecardOverlay.ShowResult(res);
+                StatusText.Text = $"SCORECARD: {res.Entries.Count} players read";
+            }
+            catch (Exception ex) { Logger.Error("ScanScorecardAsync", ex); }
         }
 
         private async void CheckUpdate_Click(object sender, RoutedEventArgs e)
@@ -607,7 +692,207 @@ namespace DCUOTracker
             finally { CheckUpdateBtn.IsEnabled = true; }
         }
 
-        private void MainTabs_SelectionChanged(object sender, SelectionChangedEventArgs e) { }
+        private void MainTabs_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            // Refresh reports list when Reports tab becomes active
+            if (e.AddedItems.Count > 0 && e.AddedItems[0] is System.Windows.Controls.TabItem tab)
+            {
+                string hdr = tab.Header?.ToString() ?? "";
+                if (hdr.Contains("REPORTS")) { try { LoadReports(); } catch { } }
+                else if (hdr.Contains("BUILDS")) { try { LoadBuilds(); } catch { } }
+                else if (hdr.Contains("TIERS")) { try { if (!_tiersLoaded) LoadTiers(); } catch { } }
+            }
+        }
+
+        // ── Builds tab ────────────────────────────────────────────────
+        private bool _buildsLoaded;
+        private record LoadoutSlot(string Slot, string Name, string Tag, WpfBrush TagBrush);
+        private record ArtifactVm(string Slot, string Name, string Why, string AltLabel);
+        private record IconicVm(string Name, string Why, string AltLabel);
+        private record AllyVm(string Slot, string Name, string Why, string AltLabel);
+
+        private void LoadBuilds()
+        {
+            if (!_buildsLoaded)
+            {
+                BuildList.ItemsSource = Models.BuildLibrary.All;
+                _buildsLoaded = true;
+            }
+            // Auto-select the power you're currently playing; fall back to Fire
+            if (!TrySelectLivePower() && BuildList.SelectedIndex < 0 && Models.BuildLibrary.All.Count > 0)
+                BuildList.SelectedIndex = 0;
+        }
+
+        private bool TrySelectLivePower()
+        {
+            try
+            {
+                var f = _dpsParser?.CurrentFight;
+                if (f == null) return false;
+                var me = f.Players.Values.FirstOrDefault(x => IsMyCharacter(x.Name))
+                         ?? f.Players.Values.OrderByDescending(p => p.TotalDamage).FirstOrDefault();
+                if (me == null || me.PowerType == DcuoPower.Unknown) return false;
+                var b = Models.BuildLibrary.All.FirstOrDefault(x =>
+                    x.Power.Equals(me.PowerType.ToString(), StringComparison.OrdinalIgnoreCase));
+                if (b == null) return false;
+                BuildList.SelectedItem = b;
+                return true;
+            }
+            catch { return false; }
+        }
+
+        private Models.PowerBuild? _selPower;
+
+        private void BuildList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (BuildList.SelectedItem is not Models.PowerBuild b) return;
+            try
+            {
+                _selPower = b;
+                var accent = HexBrush(b.ColorHex);
+                Bd_Icon.Text       = b.Icon;
+                Bd_Title.Text      = b.Power.ToUpper();
+                Bd_Title.Foreground= accent;
+                Bd_HeaderBar.BorderBrush = accent;
+
+                // Build the role-selector buttons (DPS + support role)
+                Bd_RoleButtons.Children.Clear();
+                foreach (var role in b.Roles)
+                {
+                    var btn = new System.Windows.Controls.Button
+                    {
+                        Content        = $"{role.RoleIcon}  {role.RoleLabel}",
+                        Tag            = role,
+                        Margin         = new System.Windows.Thickness(0, 0, 6, 0),
+                        Padding        = new System.Windows.Thickness(12, 5, 12, 5),
+                        Cursor         = System.Windows.Input.Cursors.Hand,
+                        FontFamily     = new System.Windows.Media.FontFamily("Consolas"),
+                        FontSize       = 11,
+                        FontWeight     = System.Windows.FontWeights.Bold,
+                        BorderThickness= new System.Windows.Thickness(0, 0, 0, 2),
+                        BorderBrush    = HexBrush(role.RoleHex),
+                        Foreground     = System.Windows.Media.Brushes.White,
+                        Background     = HexBrush("#0D1525")
+                    };
+                    btn.Click += BuildRole_Click;
+                    Bd_RoleButtons.Children.Add(btn);
+                }
+
+                RenderRole(b.Dps ?? b.Roles.FirstOrDefault());
+            }
+            catch (Exception ex) { Logger.Error("BuildList_SelectionChanged", ex); }
+        }
+
+        private void BuildRole_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is System.Windows.Controls.Button btn && btn.Tag is Models.RoleBuild rb)
+                RenderRole(rb);
+        }
+
+        private void RenderRole(Models.RoleBuild? rb)
+        {
+            if (rb == null || _selPower == null) return;
+            var roleBrush = HexBrush(rb.RoleHex);
+
+            // Highlight the active role button
+            foreach (var child in Bd_RoleButtons.Children)
+                if (child is System.Windows.Controls.Button btn)
+                {
+                    bool active = ReferenceEquals(btn.Tag, rb);
+                    btn.Background = active ? HexBrush(rb.RoleHex) : HexBrush("#0D1525");
+                    btn.Foreground = active ? System.Windows.Media.Brushes.Black
+                                            : System.Windows.Media.Brushes.White;
+                }
+
+            Bd_Type.Text = rb.Role == Models.BuildRole.DPS
+                ? "Might · Superpowered DPS"
+                : $"{rb.RoleLabel} build";
+            Bd_Type.Foreground = roleBrush;
+
+            // Tier badge for this power + role (pulled from the Tiers data)
+            var tier = Models.TierLibrary.Lookup(_selPower.Power, rb.Role);
+            if (tier is { } t)
+            {
+                Bd_TierBox.Visibility = Visibility.Visible;
+                Bd_TierBox.Background = HexBrush(t.hex);
+                Bd_TierLetter.Text   = t.tier;
+                Bd_TierWhy.Text       = $"{t.tier}-tier {rb.RoleLabel.ToLower()}: {t.why}";
+                Bd_TierWhy.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                Bd_TierBox.Visibility = Visibility.Collapsed;
+                Bd_TierWhy.Visibility = Visibility.Collapsed;
+            }
+
+            if (!string.IsNullOrEmpty(rb.Mechanic))
+            {
+                Bd_MechBox.Visibility  = Visibility.Visible;
+                Bd_MechBox.BorderBrush = roleBrush;
+                Bd_Mech.Text           = rb.Mechanic;
+            }
+            else Bd_MechBox.Visibility = Visibility.Collapsed;
+
+            Bd_Bar1.ItemsSource = rb.Bar1.Select((a, i) => MakeSlot(i, a)).ToList();
+            Bd_Bar2.ItemsSource = rb.Bar2.Select((a, i) => MakeSlot(i, a)).ToList();
+            Bd_RotGroup.Text = string.IsNullOrEmpty(rb.RotationGroup) ? "—" : rb.RotationGroup;
+            Bd_RotSolo.Text  = string.IsNullOrEmpty(rb.RotationSolo) ? "—" : rb.RotationSolo;
+            Bd_Tips.Text     = rb.Tips;
+            Bd_Artifacts.ItemsSource = rb.Artifacts.Select((a, i) => new ArtifactVm(
+                (i + 1).ToString(), a.Name, a.Why,
+                string.IsNullOrEmpty(a.Alt) || a.Alt == "—" ? "" : "↺ alt: " + a.Alt)).ToList();
+            Bd_Iconics.ItemsSource   = Models.BuildLibrary.IconicsForRole(rb.Role)
+                .Select(ic => new IconicVm(ic.Name, ic.Why,
+                    string.IsNullOrEmpty(ic.Alt) ? "" : "↺ alt: " + ic.Alt)).ToList();
+            Bd_Allies.ItemsSource    = Models.BuildLibrary.AlliesForRole(rb.Role)
+                .Select(a => new AllyVm(a.Slot, a.Name, a.Why,
+                    string.IsNullOrEmpty(a.Alt) ? "" : "↺ alt: " + a.Alt)).ToList();
+            Bd_Mods.ItemsSource      = rb.Mods;
+            Bd_Stats.Text    = rb.StatPoints;
+            Bd_Source.Text   = "Source: " + rb.Source + "  ·  2026 dual-tray era — verify in-game.";
+        }
+
+        private static LoadoutSlot MakeSlot(int i, string ability)
+        {
+            var t = Models.AbilityTag.For(ability);
+            return new LoadoutSlot((i + 1).ToString(), ability, t.Text, HexBrush(t.Hex));
+        }
+
+        // ── Tier list tab ──
+        private bool _tiersLoaded;
+        private record TierBandVm(string Tier, WpfBrush TierBrush, string Label,
+                                  System.Collections.Generic.List<Models.TierEntry> Entries);
+
+        private void LoadTiers()
+        {
+            RenderTier("DPS");
+            _tiersLoaded = true;
+        }
+
+        private void TierRole_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is System.Windows.Controls.Button b && b.Tag is string role) RenderTier(role);
+        }
+
+        private void RenderTier(string role)
+        {
+            try
+            {
+                var tbl = Models.TierLibrary.For(role);
+                Tr_Note.Text = tbl.Note;
+                Tr_Bands.ItemsSource = tbl.Bands
+                    .Select(b => new TierBandVm(b.Tier, HexBrush(b.Hex), b.Label, b.Entries)).ToList();
+                Tr_Source.Text = "Community consensus · June 2026 (GU73, dual-tray era). Opinion-based and shifts each episode — tell me to adjust any placement.";
+                foreach (var child in Tr_RoleButtons.Children)
+                    if (child is System.Windows.Controls.Button btn)
+                    {
+                        bool active = (btn.Tag as string) == role;
+                        btn.FontWeight = active ? System.Windows.FontWeights.Bold : System.Windows.FontWeights.Normal;
+                        btn.Opacity    = active ? 1.0 : 0.55;
+                    }
+            }
+            catch (Exception ex) { Logger.Error("RenderTier", ex); }
+        }
         private void TabMyDrops_Click(object sender, RoutedEventArgs e)
         {
             DropGrid.Visibility = Visibility.Visible;
@@ -646,6 +931,8 @@ namespace DCUOTracker
             string name = MyCharBox.Text.Trim();
             if (string.IsNullOrEmpty(name)) return;
             _settings.MyCharacterName = name;
+            _dpsOverlay.MyCharacterName = name;
+            _scorecardOverlay.MyCharacterName = name;
             _settings.Save();
             var toParty = _sessionDrops.Where(d => !IsMyCharacter(d.Character)).ToList();
             foreach (var d in toParty) { _sessionDrops.Remove(d); _partyDrops.Insert(0, d); }
@@ -705,7 +992,7 @@ namespace DCUOTracker
         private record ReportListItem(string FightName, string DateLabel, string DpsLabel,
             bool IsPersonalBest, string Id, Visibility PbVis);
 
-        private record AbilityVm(string Ability, string TotalFmt, string AvgFmt);
+        private class AbilityVm { public string Ability{get;init;}=""; public string TotalFmt{get;init;}=""; public string AvgFmt{get;init;}=""; public string PctFmt{get;init;}=""; public string HpmFmt{get;init;}=""; public WpfBrush AbColor{get;init;}=new WpfBrush(WpfColor.FromRgb(75,195,247)); public string Badge{get;init;}=""; }
 
         private class PlayerVm
         {
@@ -720,6 +1007,24 @@ namespace DCUOTracker
             public WpfBrush BarColor  { get; init; } = System.Windows.Media.Brushes.Cyan;
             public Visibility AbVis   { get; set; } = Visibility.Collapsed;
             public List<AbilityVm> TopAbilities { get; init; } = new();
+        }
+
+        private class RotationVm
+        {
+            public string Time { get; init; } = "";
+            public string Name { get; init; } = "";
+            public string Dmg  { get; init; } = "";
+            public WpfBrush CatColor { get; init; } = new WpfBrush(WpfColor.FromRgb(0,212,255));
+            public string GapText { get; init; } = "";
+            public WpfBrush GapColor { get; init; } = new WpfBrush(WpfColor.FromRgb(255,80,80));
+            public Visibility GapVis { get; init; } = Visibility.Collapsed;
+        }
+
+        private class DeathVm
+        {
+            public string Time { get; init; } = "";
+            public string What { get; init; } = "";
+            public string Dmg  { get; init; } = "";
         }
 
         private void LoadReports()
@@ -790,15 +1095,176 @@ namespace DCUOTracker
                     BarW        = gt > 0 ? Math.Max(1, (double)p.TotalDamage / gt * 300) : 1,
                     BarColor    = _rptPalette[i % _rptPalette.Length],
                     TopAbilities = p.TopAbilities
-                        .Select(a => new AbilityVm(a.Ability, FormatNum(a.Total), FormatNum(a.Avg)))
+                        .Select(a => new AbilityVm { Ability=a.Ability, TotalFmt=FormatNum(a.Total), AvgFmt=FormatNum(a.Avg) })
                         .ToList(),
-                    AbVis = Visibility.Visible // show abilities in report view
+                    AbVis = Visibility.Visible
                 };
                 return vm;
             }).ToList();
 
             RptLeaderboard.ItemsSource = rows;
+
+            PopulateAnalysis(r);
         }
+
+        // Phase 6 + 8: rotation timeline, death recap, metrics + coach for selected report
+        private void PopulateAnalysis(FightReport r)
+        {
+            // Pick MY entry (matches saved character) else the top-damage entry
+            var p = r.Players.FirstOrDefault(x => IsMyCharacter(x.Name)) ?? r.Players.FirstOrDefault();
+            if (p == null) { RptAnalysis.Visibility = Visibility.Collapsed; return; }
+            RptAnalysis.Visibility = Visibility.Visible;
+            RptAnalysisWho.Text = $"{p.Name.ToUpper()} — PERFORMANCE" + (r.IsSparringParse ? "  ⊕ PARSE" : "");
+
+            // Old reports (saved before the analytics update) carry no per-fight data —
+            // show an honest "no data" state instead of a bogus 0%-activity recommendation.
+            bool hasAnalytics = p.Activity > 0 || p.Crit > 0 || p.Apm > 0 || p.Burst > 0
+                                || (p.Rotation?.Count ?? 0) > 0
+                                || (p.MightPct + p.SuperPct + p.PrecPct) > 0;
+            if (!hasAnalytics)
+            {
+                RptA_Grade.Text = "—";  RptA_GradeBox.Background = HexBrush("#3A4252");
+                RptA_Activity.Text = "—"; RptA_Crit.Text = "—"; RptA_Apm.Text = "—"; RptA_Burst.Text = "—";
+                RptMightSeg.Width = RptSuperSeg.Width = RptPrecSeg.Width = 0;
+                RptA_Split.Text = "No damage-split data for this fight.";
+                RptCoachLabel.Text = "NO DATA YET";
+                RptCoachLabel.Foreground = HexBrush("#60A5FA");
+                RptCoachBox.BorderBrush  = HexBrush("#60A5FA");
+                RptCoachText.Text = "This fight was saved before the performance-analytics update, so there's nothing to grade here. "
+                    + "Run a fresh fight (or a sparring-target parse) and your NEXT report will show Activity, Crit, APM, burst, "
+                    + "your Might/Precision split and the full rotation timeline. Old fights can be deleted with the 🗑 button.";
+                RptRotation.ItemsSource = null;
+                RptRotSummary.Text = "No cast data — recorded before analytics were added.";
+                RptDeathPanel.Visibility = Visibility.Collapsed;
+                _curCurve = new(); DrawDpsCurve();
+                return;
+            }
+
+            // Metric cards
+            var g = Models.DpsGrade.ForActivity(p.Activity);
+            RptA_Grade.Text = g.Letter;
+            RptA_GradeBox.Background = HexBrush(g.Hex);
+            RptA_Activity.Text = $"{p.Activity:F0}%";
+            RptA_Crit.Text     = $"{p.Crit:F0}%";
+            RptA_Apm.Text      = $"{p.Apm:F0}";
+            RptA_Burst.Text    = FormatNum((long)p.Burst);
+
+            // Might/Super/Precision split
+            double w = RptA_SplitCanvas.ActualWidth > 10 ? RptA_SplitCanvas.ActualWidth : 560;
+            double powerOnly = Math.Max(0, p.MightPct - p.SuperPct) / 100.0;
+            double super = p.SuperPct / 100.0, prec = p.PrecPct / 100.0;
+            RptMightSeg.Width = powerOnly * w;
+            RptSuperSeg.Width = super * w; System.Windows.Controls.Canvas.SetLeft(RptSuperSeg, powerOnly * w);
+            RptPrecSeg.Width  = prec  * w; System.Windows.Controls.Canvas.SetLeft(RptPrecSeg, (powerOnly + super) * w);
+            RptA_Split.Text = $"MIGHT {p.MightPct:F0}%   ·   SUPERCHARGE {p.SuperPct:F0}%   ·   PRECISION {p.PrecPct:F0}%";
+
+            // Coach verdict
+            long hits = p.TopAbilities.Sum(a => (long)a.Hits);
+            var tip = Models.Coach.Analyze(p.Activity, p.Crit, p.PrecPct, p.SuperPct,
+                                           hits > 0 ? hits : 20, p.PowerType, r.IsSparringParse);
+            RptCoachLabel.Text = tip.Label;
+            RptCoachText.Text  = tip.Text;
+            RptCoachLabel.Foreground = HexBrush(tip.Hex);
+            RptCoachBox.BorderBrush  = HexBrush(tip.Hex);
+
+            // Rotation timeline with gap/clip detection
+            var rot = new List<RotationVm>();
+            double prevSec = double.NaN;
+            int downtime = 0; double maxGap = 0; double maxGapAt = 0; double gapSum = 0; int gapN = 0;
+            foreach (var c in p.Rotation ?? new())
+            {
+                string gapText = ""; Visibility gapVis = Visibility.Collapsed; WpfBrush gapCol = HexBrush("#FF5050");
+                if (!double.IsNaN(prevSec))
+                {
+                    double gap = c.Sec - prevSec;
+                    gapSum += gap; gapN++;
+                    if (gap > maxGap) { maxGap = gap; maxGapAt = prevSec; }
+                    if (gap >= 2.0)
+                    {
+                        downtime++;
+                        gapText = $"▽ {gap:F1}s downtime";
+                        gapVis = Visibility.Visible;
+                        gapCol = HexBrush(gap >= 4 ? "#FF5050" : "#FFC800");
+                    }
+                }
+                prevSec = c.Sec;
+                rot.Add(new RotationVm
+                {
+                    Time = $"{c.Sec:F1}s",
+                    Name = c.Ability + (c.Crit ? "  ✶" : ""),
+                    Dmg  = c.Damage > 0 ? FormatNum(c.Damage) : "",
+                    CatColor = c.Category switch {
+                        "Weapon"      => HexBrush("#9CA3AF"),
+                        "Supercharge" => HexBrush("#FBBF24"),
+                        _             => HexBrush("#FF6B35") },
+                    GapText = gapText, GapVis = gapVis, GapColor = gapCol
+                });
+            }
+            RptRotation.ItemsSource = rot;
+            double avgGap = gapN > 0 ? gapSum / gapN : 0;
+            RptRotSummary.Text = rot.Count == 0
+                ? "No cast data recorded for this fight."
+                : $"{rot.Count} casts · avg {avgGap:F1}s between · longest gap {maxGap:F1}s at {maxGapAt:F0}s · {downtime} downtime gap(s) ≥2s";
+            // Tie in the recommended rotation for the detected power (ideal vs actual)
+            var bld = Models.BuildLibrary.All.FirstOrDefault(b =>
+                b.Power.Equals(p.PowerType, StringComparison.OrdinalIgnoreCase));
+            if (bld?.Dps != null && rot.Count > 0)
+                RptRotSummary.Text += $"\n✓ Ideal {p.PowerType}: {bld.Dps.RotationGroup}";
+
+            // Death recap
+            if (p.Deaths > 0 && p.DeathRecap.Count > 0)
+            {
+                RptDeathPanel.Visibility = Visibility.Visible;
+                RptDeathHeader.Text = p.Deaths > 1 ? $"💀 DEATH RECAP ({p.Deaths} deaths) — last hits taken" : "💀 DEATH RECAP — last hits taken";
+                RptDeathList.ItemsSource = p.DeathRecap.Select(d => new DeathVm
+                {
+                    Time = $"{d.Sec:F1}s",
+                    What = $"{d.Source}: {d.Ability}" + (d.Crit ? "  ✶" : ""),
+                    Dmg  = FormatNum(d.Damage)
+                }).ToList();
+            }
+            else RptDeathPanel.Visibility = Visibility.Collapsed;
+
+            _curCurve = p.DpsCurve;
+            DrawDpsCurve();
+        }
+
+        private List<float> _curCurve = new();
+        private void RptGraph_SizeChanged(object sender, SizeChangedEventArgs e) => DrawDpsCurve();
+
+        private void DrawDpsCurve()
+        {
+            var cv = RptGraphCanvas;
+            cv.Children.Clear();
+            var data = _curCurve;
+            double w = cv.ActualWidth, h = cv.ActualHeight;
+            if (data == null || data.Count < 2 || w < 10 || h < 10) { RptGraphPeak.Text = ""; return; }
+            float max = data.Max();
+            if (max <= 0) { RptGraphPeak.Text = ""; return; }
+
+            double padTop = 14, padBot = 4, gh = h - padTop - padBot;
+            var pts = new System.Windows.Media.PointCollection();
+            for (int i = 0; i < data.Count; i++)
+            {
+                double x = (double)i / (data.Count - 1) * w;
+                double y = padTop + gh - (data[i] / max) * gh;
+                pts.Add(new System.Windows.Point(x, y));
+            }
+            var area = new System.Windows.Media.PointCollection(pts)
+            {
+                new System.Windows.Point(w, h - padBot),
+                new System.Windows.Point(0, h - padBot)
+            };
+            cv.Children.Add(new System.Windows.Shapes.Polygon { Points = area, Fill = HexBrush("#2200D4FF") });
+            cv.Children.Add(new System.Windows.Shapes.Polyline
+            {
+                Points = pts, Stroke = HexBrush("#00D4FF"), StrokeThickness = 1.6
+            });
+            RptGraphPeak.Text = $"peak {FormatNum((long)max)} DPS";
+        }
+
+        private static WpfBrush HexBrush(string hex) =>
+            (WpfBrush)new System.Windows.Media.BrushConverter().ConvertFromString(hex)!;
 
         private void RptSaveLabel_Click(object sender, RoutedEventArgs e)
         {
@@ -827,6 +1293,9 @@ namespace DCUOTracker
             // Boss-key: F9 hides/shows all overlays (no modifier = pure F9)
             _hideAllHotkey = new GlobalHotkey(this, Mod.None, VKey.F9);
             _hideAllHotkey.HotkeyPressed += ToggleAllOverlays;
+            // F10: scan the in-game Scorecard → group DPS
+            _scanScorecardHotkey = new GlobalHotkey(this, Mod.None, VKey.F10);
+            _scanScorecardHotkey.HotkeyPressed += () => Dispatcher.Invoke(() => { _ = ScanScorecardAsync(); });
         }
 
         private bool _overlaysHidden = false;
@@ -850,6 +1319,9 @@ namespace DCUOTracker
             _fgWatcher.Dispose();
             _watchdog.Dispose();
             _hideAllHotkey?.Dispose();
+            _scanScorecardHotkey?.Dispose();
+            _scorecardScanner.Dispose();
+            _scorecardOverlay.Dispatcher.Invoke(() => { try { _scorecardOverlay.ForceClose(); } catch { } });
             _dpsOverlay.Dispatcher.Invoke(() => { try { _dpsOverlay.ForceClose(); } catch { } });
             _watcher.Stop();
             _watcher.Dispose();

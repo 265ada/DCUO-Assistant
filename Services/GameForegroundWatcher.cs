@@ -52,6 +52,9 @@ namespace DCUOTracker.Services
             try
             {
                 GetWindowThreadProcessId(hwnd, out uint pid);
+                // Clicking our OWN overlay/window must not count as "game lost focus",
+                // otherwise the overlay hides the instant you try to interact with it.
+                if (pid == (uint)Environment.ProcessId) return;
                 using var proc = Process.GetProcessById((int)pid);
                 isGame = proc.ProcessName.Equals("DCGAME", StringComparison.OrdinalIgnoreCase);
             }
