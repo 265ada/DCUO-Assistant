@@ -128,19 +128,25 @@ private static System.Windows.Controls.MenuItem MakeMenuItem(string header, bool
                 DurationLabel.Text = FmtT(fight.Duration);
                 RebuildList(fight);
 
-                // Auto-show own player's abilities without requiring a click
-                if (_selectedPlayer != null && fight.Players.ContainsKey(_selectedPlayer.Name))
-                    ShowAbilities(_selectedPlayer);
+                // Pick the player to show. ALWAYS re-fetch the current fight's instance by name
+                // so we never display stale data from a previous fight/character (power-swap fix).
+                PlayerStats? target = null;
+                if (_selectedPlayer != null && fight.Players.TryGetValue(_selectedPlayer.Name, out var cur))
+                    target = cur;                                   // re-fetch live instance
                 else if (!string.IsNullOrEmpty(MyCharacterName) && fight.Players.TryGetValue(MyCharacterName, out var me))
+                    target = me;                                    // my character
+                else if (fight.Players.Count > 0)
+                    target = fight.RankedByDamage.First();          // fallback: top damage = you
+
+                if (target != null)
                 {
-                    _selectedPlayer = me;
-                    ShowAbilities(me);
+                    _selectedPlayer = target;
+                    ShowAbilities(target);
                 }
-                else if (_selectedPlayer == null && fight.Players.Count > 0)
+                else
                 {
-                    // Fallback: show top DPS player's abilities
-                    _selectedPlayer = fight.RankedByDamage.First();
-                    ShowAbilities(_selectedPlayer);
+                    AbilityPanel.Visibility = Visibility.Collapsed;
+                    MyStatsPanel.Visibility = Visibility.Collapsed;
                 }
 
                 Show();
@@ -348,7 +354,8 @@ private static System.Windows.Controls.MenuItem MakeMenuItem(string header, bool
         private static string FmtT(TimeSpan t) => t.TotalHours>=1?$"{(int)t.TotalHours}:{t.Minutes:D2}:{t.Seconds:D2}":$"{t.Minutes}:{t.Seconds:D2}";
         private static string Trunc(string s, int m) => s.Length>m?s[..m]+"…":s;
 
-        private void Border_MouseDown(object s, MouseButtonEventArgs e) { if(e.ChangedButton==MouseButton.Left) DragMove(); }
+        public Action? PositionChanged;
+        private void Border_MouseDown(object s, MouseButtonEventArgs e) { if(e.ChangedButton==MouseButton.Left) { DragMove(); PositionChanged?.Invoke(); } }
         private void Pin_Click(object s, RoutedEventArgs e) {
             _pinned=!_pinned; Topmost=_pinned;
             PinBtn.Foreground=_pinned?new WpfMedia.SolidColorBrush(WpfMedia.Color.FromRgb(0,212,255)):new WpfMedia.SolidColorBrush(WpfMedia.Color.FromRgb(100,100,100));
@@ -356,6 +363,25 @@ private static System.Windows.Controls.MenuItem MakeMenuItem(string header, bool
         private void Close_Click(object s, RoutedEventArgs e) => Hide();
         public void ForceClose() { _forceClose=true; Close(); }
         protected override void OnClosing(System.ComponentModel.CancelEventArgs e) { if(_forceClose)return; e.Cancel=true; Hide(); }
+
+        // ── Click-through (mouse passes to the game). Toggled by Ctrl+0 from MainWindow. ──
+        public bool ClickThrough { get; private set; } = true;
+        protected override void OnSourceInitialized(EventArgs e)
+        {
+            base.OnSourceInitialized(e);
+            Services.ClickThrough.Apply(this, ClickThrough);
+            UpdateClickBorder();
+        }
+        public void SetClickThrough(bool on)
+        {
+            ClickThrough = on;
+            Services.ClickThrough.Apply(this, on);
+            UpdateClickBorder();
+        }
+        private void UpdateClickBorder() =>
+            RootBorder.BorderBrush = ClickThrough
+                ? new WpfMedia.SolidColorBrush(WpfMedia.Color.FromRgb(0,212,255))   // cyan = click-through ON
+                : new WpfMedia.SolidColorBrush(WpfMedia.Color.FromRgb(255,210,74));  // gold = interactable (Ctrl+0)
     }
     internal static class DoubleExt
     {

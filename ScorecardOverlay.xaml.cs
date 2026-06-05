@@ -79,12 +79,32 @@ namespace DCUOTracker
             n >= 1_000_000     ? $"{n/1_000_000.0:F1}M" :
             n >= 1_000         ? $"{n/1_000.0:F1}k" : n.ToString();
 
+        public Action? PositionChanged;
         private void Border_MouseDown(object s, MouseButtonEventArgs e)
-        { if (e.ChangedButton == MouseButton.Left) DragMove(); }
+        { if (e.ChangedButton == MouseButton.Left) { DragMove(); PositionChanged?.Invoke(); } }
 
         private void Close_Click(object s, RoutedEventArgs e) => Hide();
         public void ForceClose() { _forceClose = true; Close(); }
         protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
         { if (_forceClose) return; e.Cancel = true; Hide(); }
+
+        // ── Click-through (toggled by Ctrl+0) ──
+        public bool ClickThrough { get; private set; } = true;
+        protected override void OnSourceInitialized(System.EventArgs e)
+        {
+            base.OnSourceInitialized(e);
+            Services.ClickThrough.Apply(this, ClickThrough);
+            UpdateClickBorder();
+        }
+        public void SetClickThrough(bool on)
+        {
+            ClickThrough = on;
+            Services.ClickThrough.Apply(this, on);
+            UpdateClickBorder();
+        }
+        private void UpdateClickBorder() =>
+            RootBorder.BorderBrush = ClickThrough
+                ? new WpfMedia.SolidColorBrush(WpfMedia.Color.FromRgb(0,212,255))
+                : new WpfMedia.SolidColorBrush(WpfMedia.Color.FromRgb(255,210,74));
     }
 }

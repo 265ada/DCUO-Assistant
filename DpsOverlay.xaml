@@ -11,7 +11,7 @@
         ResizeMode="NoResize"
         Left="20" Top="200">
 
-    <Border Background="#E6050A18" CornerRadius="8"
+    <Border x:Name="RootBorder" Background="#E6050A18" CornerRadius="8"
             BorderBrush="#00d4ff" BorderThickness="1"
             MouseDown="Border_MouseDown">
         <StackPanel Margin="8,6,8,8">

@@ -30,7 +30,11 @@ namespace DCUOTracker.Services
             @"^(.+?)'s\s+(.+?)\s+knocked out\s+(.+?)\.?$",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-        private const double FIGHT_GAP_SECONDS  = 5.0;
+        // Combat timeout: how long with NO damage before a fight is considered over.
+        // Was 5s — too short, it reset mid-encounter on every lull (boss pauses, running to
+        // adds, mechanics) and wiped your metrics. 18s rides through lulls but still separates
+        // distinct sparring parses / pulls. Stall detection still pauses live-DPS decay at 5s.
+        private const double FIGHT_GAP_SECONDS  = 18.0;
         private const double STALL_THRESHOLD    = 5.0;
         private const long   UNIX_MICRO_EPOCH   = 621355968000000000L; // ticks at Unix epoch
 

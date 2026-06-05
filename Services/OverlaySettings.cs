@@ -32,6 +32,8 @@ namespace DCUOTracker.Services
         public bool BossOnlyMeter   { get; set; } = false; // dual meter toggle
         public double DpsOverlayLeft { get; set; } = 20;
         public double DpsOverlayTop  { get; set; } = 200;
+        public double ScoreOverlayLeft { get; set; } = 40;
+        public double ScoreOverlayTop  { get; set; } = 260;
 
         // Global hotkeys
         public string HideAllHotkey { get; set; } = "F9"; // boss-key

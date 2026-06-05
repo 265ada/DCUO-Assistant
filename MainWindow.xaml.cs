@@ -28,6 +28,8 @@ namespace DCUOTracker
         private readonly AppWatchdog         _watchdog;
         private GlobalHotkey?                _hideAllHotkey;
         private GlobalHotkey?                _scanScorecardHotkey;
+        private GlobalHotkey?                _clickThroughHotkey;
+        private bool                        _overlaysClickThrough = true;
         private readonly ObservableCollection<NthMetalDrop> _sessionDrops = new();
         private readonly ObservableCollection<NthMetalDrop> _partyDrops  = new();
         private bool _soundEnabled = true;
@@ -82,11 +84,25 @@ namespace DCUOTracker
                     new Action(LoadAllTimeDrops));
 
             // DPS parser + overlay + fight reports
-            _dpsOverlay   = new DpsOverlay { MyCharacterName = _settings.MyCharacterName };
+            _dpsOverlay   = new DpsOverlay {
+                MyCharacterName = _settings.MyCharacterName,
+                Left = _settings.DpsOverlayLeft, Top = _settings.DpsOverlayTop };
+            _dpsOverlay.PositionChanged += () => {
+                _settings.DpsOverlayLeft = _dpsOverlay.Left;
+                _settings.DpsOverlayTop  = _dpsOverlay.Top;
+                _settings.Save();
+            };
             _dpsParser    = new DpsParser(LogPath);
             _partyScanner = new PartyFrameScanner();
             _scorecardScanner = new ScorecardScanner();
-            _scorecardOverlay = new ScorecardOverlay { MyCharacterName = _settings.MyCharacterName };
+            _scorecardOverlay = new ScorecardOverlay {
+                MyCharacterName = _settings.MyCharacterName,
+                Left = _settings.ScoreOverlayLeft, Top = _settings.ScoreOverlayTop };
+            _scorecardOverlay.PositionChanged += () => {
+                _settings.ScoreOverlayLeft = _scorecardOverlay.Left;
+                _settings.ScoreOverlayTop  = _scorecardOverlay.Top;
+                _settings.Save();
+            };
             if (_settings.HasScoreRegion)
                 _scorecardScanner.SetScanRegion(_settings.ScoreX, _settings.ScoreY,
                     _settings.ScoreWidth, _settings.ScoreHeight);
@@ -129,11 +145,13 @@ namespace DCUOTracker
             };
 
             _dpsParser.FightUpdated += (_, e) => {
+                SyncDetectedCharacter(e.Fight);
                 _partyScanner.TriggerScan();
                 _dpsOverlay.UpdateFight(e.Fight);
                 _watchdog.RecordOverlayUpdate();
             };
             _dpsParser.FightStarted += (_, e) => {
+                SyncDetectedCharacter(e.Fight);
                 _partyScanner.TriggerScan();
                 _dpsOverlay.UpdateFight(e.Fight);
             };
@@ -201,6 +219,44 @@ namespace DCUOTracker
         // â”€â”€ Nth Metal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         private bool IsMyCharacter(string n) => string.IsNullOrEmpty(_settings.MyCharacterName) || n.Equals(_settings.MyCharacterName, StringComparison.OrdinalIgnoreCase);
+
+        // Pet/companion names that are NOT your character (so we don't auto-pick them as "me")
+        private static readonly string[] _petNames =
+            { "brick", "fury", "watcher", "guardian", "crystal", "robot sidekick", "sidekick",
+              "turret", "golem", "construct", "larva", "swarm", "vine lash" };
+        private static bool IsLikelyPet(string n)
+        {
+            string lo = n.ToLowerInvariant();
+            return _petNames.Any(p => lo.Contains(p));
+        }
+
+        // Auto-detect the character you're currently playing (top damage source that isn't a pet)
+        // and keep MY CHARACTER + overlays in sync — handles character/power swaps automatically.
+        private string _lastDetectedChar = "";
+        private void SyncDetectedCharacter(Models.FightData fight)
+        {
+            try
+            {
+                var me = fight.RankedByDamage.FirstOrDefault(p => !IsLikelyPet(p.Name))
+                         ?? fight.RankedByDamage.FirstOrDefault();
+                string name = me?.Name ?? "";
+                if (string.IsNullOrWhiteSpace(name)) return;
+                if (name.Equals(_lastDetectedChar, StringComparison.OrdinalIgnoreCase)) return; // no change
+                if (name.Equals(_settings.MyCharacterName, StringComparison.OrdinalIgnoreCase))
+                { _lastDetectedChar = name; return; }
+
+                _lastDetectedChar = name;
+                _settings.MyCharacterName = name;
+                _settings.Save();
+                Dispatcher.Invoke(() =>
+                {
+                    try { MyCharBox.Text = name; } catch { }
+                    _dpsOverlay.MyCharacterName = name;
+                    _scorecardOverlay.MyCharacterName = name;
+                });
+            }
+            catch (Exception ex) { Logger.Error("SyncDetectedCharacter", ex); }
+        }
 
         private void OnDropDetected(object? sender, DropEventArgs e)
         {
@@ -1296,6 +1352,22 @@ namespace DCUOTracker
             // F10: scan the in-game Scorecard → group DPS
             _scanScorecardHotkey = new GlobalHotkey(this, Mod.None, VKey.F10);
             _scanScorecardHotkey.HotkeyPressed += () => Dispatcher.Invoke(() => { _ = ScanScorecardAsync(); });
+            // Ctrl+0: toggle overlay click-through (clicks pass to game vs. drag/configure overlay)
+            _clickThroughHotkey = new GlobalHotkey(this, Mod.Ctrl, VKey.D0);
+            _clickThroughHotkey.HotkeyPressed += ToggleClickThrough;
+        }
+
+        private void ToggleClickThrough()
+        {
+            Dispatcher.Invoke(() =>
+            {
+                _overlaysClickThrough = !_overlaysClickThrough;
+                _dpsOverlay.SetClickThrough(_overlaysClickThrough);
+                _scorecardOverlay.SetClickThrough(_overlaysClickThrough);
+                StatusText.Text = _overlaysClickThrough
+                    ? "OVERLAY CLICK-THROUGH: ON (clicks pass to game)"
+                    : "OVERLAY CLICK-THROUGH: OFF — drag/click the overlay, Ctrl+0 to re-enable";
+            });
         }
 
         private bool _overlaysHidden = false;
@@ -1311,6 +1383,12 @@ namespace DCUOTracker
 
         protected override void OnClosed(EventArgs e)
         {
+            try {
+                _settings.DpsOverlayLeft   = _dpsOverlay.Left;
+                _settings.DpsOverlayTop    = _dpsOverlay.Top;
+                _settings.ScoreOverlayLeft = _scorecardOverlay.Left;
+                _settings.ScoreOverlayTop  = _scorecardOverlay.Top;
+            } catch { }
             _settings.Save();
             Logger.Shutdown();
             _dpsParser.Stop();
@@ -1320,6 +1398,7 @@ namespace DCUOTracker
             _watchdog.Dispose();
             _hideAllHotkey?.Dispose();
             _scanScorecardHotkey?.Dispose();
+            _clickThroughHotkey?.Dispose();
             _scorecardScanner.Dispose();
             _scorecardOverlay.Dispatcher.Invoke(() => { try { _scorecardOverlay.ForceClose(); } catch { } });
             _dpsOverlay.Dispatcher.Invoke(() => { try { _dpsOverlay.ForceClose(); } catch { } });

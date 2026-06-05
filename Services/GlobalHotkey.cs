@@ -83,6 +83,7 @@ namespace DCUOTracker.Services
         public const uint F10 = 0x79;
         public const uint F11 = 0x7A;
         public const uint F12 = 0x7B;
+        public const uint D0  = 0x30; // top-row '0' key
     }
 
     /// <summary>Modifier flags for RegisterHotKey.</summary>
