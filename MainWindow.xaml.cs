@@ -26,9 +26,8 @@ namespace DCUOTracker
         private readonly FightReportStore    _reportStore;
         private readonly GameForegroundWatcher _fgWatcher;
         private readonly AppWatchdog         _watchdog;
-        private GlobalHotkey?                _hideAllHotkey;
-        private GlobalHotkey?                _scanScorecardHotkey;
-        private GlobalHotkey?                _clickThroughHotkey;
+        private readonly KeybindSettings     _keybindSettings;
+        private readonly KeybindManager      _keybindManager;
         private bool                        _overlaysClickThrough = true;
         private readonly ObservableCollection<NthMetalDrop> _sessionDrops = new();
         private readonly ObservableCollection<NthMetalDrop> _partyDrops  = new();
@@ -58,8 +57,10 @@ namespace DCUOTracker
         {
             InitializeComponent();
 
-            // Load settings FIRST â€” used throughout constructor
-            _settings = OverlaySettings.Load();
+            // Load settings FIRST — used throughout constructor
+            _settings        = OverlaySettings.Load();
+            _keybindSettings = KeybindSettings.Load();
+            _keybindManager  = new KeybindManager(this);
 
             // Nth Metal tracker
             _db      = new Database();
@@ -144,18 +145,23 @@ namespace DCUOTracker
                         ps.CR = cr;
             };
 
+            _dpsOverlay.ResetZoneRequested = () => _dpsParser.ResetZone();
+
             _dpsParser.FightUpdated += (_, e) => {
                 SyncDetectedCharacter(e.Fight);
                 _partyScanner.TriggerScan();
+                _dpsOverlay.UpdateZone(_dpsParser.ZoneFight);
                 _dpsOverlay.UpdateFight(e.Fight);
                 _watchdog.RecordOverlayUpdate();
             };
             _dpsParser.FightStarted += (_, e) => {
                 SyncDetectedCharacter(e.Fight);
                 _partyScanner.TriggerScan();
+                _dpsOverlay.UpdateZone(_dpsParser.ZoneFight);
                 _dpsOverlay.UpdateFight(e.Fight);
             };
             _dpsParser.FightEnded += (_, e) => {
+                _dpsOverlay.UpdateZone(_dpsParser.ZoneFight);
                 _dpsOverlay.UpdateFight(e.Fight);   // show frozen stats
                 _reportStore.SaveFight(e.Fight);    // auto-save report
             };
@@ -201,6 +207,11 @@ namespace DCUOTracker
 
             // Load reports once window is fully rendered
             Loaded += (_, _) => { try { LoadReports(); } catch { } };
+
+            // Register any saved keybinds (no defaults — all start unassigned)
+            foreach (var bind in _keybindSettings.Binds)
+                if (bind.VirtualKey > 0)
+                    RegisterHotkeyAction(bind.ActionId, bind.Modifiers, bind.VirtualKey);
 
             // OCR verify on every Enter press â€” corrects open/closed state
             _chatTracker.OnEnterPressed = () => _lfgDetector.TriggerEnterScan();
@@ -754,9 +765,10 @@ namespace DCUOTracker
             if (e.AddedItems.Count > 0 && e.AddedItems[0] is System.Windows.Controls.TabItem tab)
             {
                 string hdr = tab.Header?.ToString() ?? "";
-                if (hdr.Contains("REPORTS")) { try { LoadReports(); } catch { } }
-                else if (hdr.Contains("BUILDS")) { try { LoadBuilds(); } catch { } }
-                else if (hdr.Contains("TIERS")) { try { if (!_tiersLoaded) LoadTiers(); } catch { } }
+                if (hdr.Contains("REPORTS"))  { try { LoadReports(); } catch { } }
+                else if (hdr.Contains("BUILDS"))   { try { LoadBuilds(); } catch { } }
+                else if (hdr.Contains("TIERS"))    { try { if (!_tiersLoaded) LoadTiers(); } catch { } }
+                else if (hdr.Contains("KEYBINDS")) { try { InitKeybindsTab(); } catch { } }
             }
         }
 
@@ -1343,18 +1355,285 @@ namespace DCUOTracker
                 ? $"{(int)t.TotalHours}:{t.Minutes:D2}:{t.Seconds:D2}"
                 : $"{t.Minutes}:{t.Seconds:D2}";
 
+        // ── Keybinds tab ─────────────────────────────────────────────────────────
+
+        private static readonly (string Id, string Label, string Group)[] _allActions =
+        {
+            ("hide_overlays",      "Hide / Show All Overlays",          "OVERLAYS"),
+            ("toggle_dps_overlay", "Toggle DPS Overlay",                "OVERLAYS"),
+            ("toggle_clickthrough","Toggle Click-Through",              "OVERLAYS"),
+            ("toggle_persist",     "Toggle Persist (Multi-Monitor)",    "OVERLAYS"),
+            ("scan_scorecard",     "Scan Scorecard  ·  Group DPS",      "COMBAT"),
+            ("toggle_sound",       "Toggle Sound Alerts",               "SETTINGS"),
+            ("toggle_ontop",       "Toggle Always On Top",              "SETTINGS"),
+            ("reset_session",      "Reset Session Data",                "DATA"),
+        };
+
+        private bool    _keybindsTabLoaded;
+        private string? _capturingActionId;
+        private System.Windows.Controls.TextBox? _capturingBox;
+
+        private void InitKeybindsTab()
+        {
+            if (_keybindsTabLoaded) return;
+            _keybindsTabLoaded = true;
+
+            KeybindsPanel.Children.Clear();
+            string lastGroup = "";
+            foreach (var (id, label, group) in _allActions)
+            {
+                if (group != lastGroup)
+                {
+                    lastGroup = group;
+                    var grpLabel = new TextBlock
+                    {
+                        Text = group,
+                        Foreground = new WpfBrush(WpfColor.FromRgb(0, 212, 255)),
+                        FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                        FontSize = 10, FontWeight = FontWeights.Bold,
+                        Margin = new Thickness(0, 12, 0, 4)
+                    };
+                    KeybindsPanel.Children.Add(grpLabel);
+                }
+                KeybindsPanel.Children.Add(MakeKbRow(id, label));
+            }
+        }
+
+        private UIElement MakeKbRow(string actionId, string label)
+        {
+            var entry  = _keybindSettings.GetBind(actionId);
+            bool hasKey = entry != null && entry.VirtualKey > 0;
+
+            var grid = new Grid { Margin = new Thickness(0, 0, 0, 5) };
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(200) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(72) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(60) });
+
+            var lbl = new TextBlock
+            {
+                Text = label,
+                Foreground = new WpfBrush(WpfColor.FromRgb(200, 215, 230)),
+                FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                FontSize = 11,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(4, 0, 12, 0)
+            };
+            Grid.SetColumn(lbl, 0);
+
+            var keyBox = new System.Windows.Controls.TextBox
+            {
+                Text = hasKey ? FormatBind(entry!.Modifiers, entry.VirtualKey) : "— unassigned —",
+                IsReadOnly = true,
+                Background = new WpfBrush(WpfColor.FromRgb(8, 20, 40)),
+                Foreground = hasKey
+                    ? new WpfBrush(WpfColor.FromRgb(0, 212, 255))
+                    : new WpfBrush(WpfColor.FromRgb(42, 75, 90)),
+                BorderBrush = new WpfBrush(WpfColor.FromRgb(13, 40, 60)),
+                BorderThickness = new Thickness(1),
+                FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                FontSize = 11, FontWeight = FontWeights.Bold,
+                Padding = new Thickness(8, 5, 8, 5),
+                VerticalContentAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 4, 0)
+            };
+            Grid.SetColumn(keyBox, 1);
+
+            var assignBtn = new System.Windows.Controls.Button
+            {
+                Content = "ASSIGN",
+                Tag = actionId,
+                Background = new WpfBrush(WpfColor.FromRgb(10, 30, 60)),
+                Foreground = new WpfBrush(WpfColor.FromRgb(0, 212, 255)),
+                BorderBrush = new WpfBrush(WpfColor.FromRgb(0, 80, 130)),
+                BorderThickness = new Thickness(1),
+                FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                FontSize = 10, FontWeight = FontWeights.Bold,
+                Padding = new Thickness(6, 5, 6, 5),
+                Cursor = System.Windows.Input.Cursors.Hand,
+                Margin = new Thickness(0, 0, 4, 0)
+            };
+            assignBtn.Click += KbAssign_Click;
+            Grid.SetColumn(assignBtn, 2);
+
+            var clearBtn = new System.Windows.Controls.Button
+            {
+                Content = "CLEAR",
+                Tag = actionId,
+                Background = new WpfBrush(WpfColor.FromRgb(28, 10, 10)),
+                Foreground = new WpfBrush(WpfColor.FromRgb(140, 50, 50)),
+                BorderBrush = new WpfBrush(WpfColor.FromRgb(70, 20, 20)),
+                BorderThickness = new Thickness(1),
+                FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                FontSize = 10, FontWeight = FontWeights.Bold,
+                Padding = new Thickness(6, 5, 6, 5),
+                Cursor = System.Windows.Input.Cursors.Hand
+            };
+            clearBtn.Click += KbClear_Click;
+            Grid.SetColumn(clearBtn, 3);
+
+            grid.Children.Add(lbl);
+            grid.Children.Add(keyBox);
+            grid.Children.Add(assignBtn);
+            grid.Children.Add(clearBtn);
+            return grid;
+        }
+
+        private void KbAssign_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not System.Windows.Controls.Button btn || btn.Tag is not string actionId) return;
+            var row = btn.Parent as Grid;
+            var box = row?.Children.OfType<System.Windows.Controls.TextBox>().FirstOrDefault();
+            if (box == null) return;
+
+            CancelCapture();
+
+            _capturingActionId = actionId;
+            _capturingBox      = box;
+            box.Background = new WpfBrush(WpfColor.FromRgb(50, 20, 0));
+            box.Foreground = new WpfBrush(WpfColor.FromRgb(255, 107, 53));
+            box.Text       = "PRESS KEY COMBO…";
+
+            this.PreviewKeyDown += CaptureKeyDown;
+        }
+
+        private void CaptureKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            e.Handled = true;
+            var key = e.Key == System.Windows.Input.Key.System ? e.SystemKey : e.Key;
+
+            if (key == System.Windows.Input.Key.Escape) { CancelCapture(); return; }
+
+            // Ignore bare modifier presses
+            if (key is System.Windows.Input.Key.LeftCtrl  or System.Windows.Input.Key.RightCtrl
+                    or System.Windows.Input.Key.LeftShift or System.Windows.Input.Key.RightShift
+                    or System.Windows.Input.Key.LeftAlt   or System.Windows.Input.Key.RightAlt
+                    or System.Windows.Input.Key.LWin      or System.Windows.Input.Key.RWin) return;
+
+            uint mod = 0;
+            if (System.Windows.Input.Keyboard.IsKeyDown(System.Windows.Input.Key.LeftCtrl)
+             || System.Windows.Input.Keyboard.IsKeyDown(System.Windows.Input.Key.RightCtrl))  mod |= Mod.Ctrl;
+            if (System.Windows.Input.Keyboard.IsKeyDown(System.Windows.Input.Key.LeftShift)
+             || System.Windows.Input.Keyboard.IsKeyDown(System.Windows.Input.Key.RightShift)) mod |= Mod.Shift;
+            if (System.Windows.Input.Keyboard.IsKeyDown(System.Windows.Input.Key.LeftAlt)
+             || System.Windows.Input.Keyboard.IsKeyDown(System.Windows.Input.Key.RightAlt))   mod |= Mod.Alt;
+
+            uint vk = (uint)System.Windows.Input.KeyInterop.VirtualKeyFromKey(key);
+            if (vk == 0) { CancelCapture(); return; }
+
+            string actionId = _capturingActionId!;
+            _keybindSettings.SetBind(actionId, mod, vk);
+            RegisterHotkeyAction(actionId, mod, vk);
+
+            if (_capturingBox != null)
+            {
+                _capturingBox.Text       = FormatBind(mod, vk);
+                _capturingBox.Background = new WpfBrush(WpfColor.FromRgb(8, 20, 40));
+                _capturingBox.Foreground = new WpfBrush(WpfColor.FromRgb(0, 212, 255));
+            }
+            FinishCapture();
+        }
+
+        private void CancelCapture()
+        {
+            if (_capturingBox != null)
+            {
+                var entry = _keybindSettings.GetBind(_capturingActionId ?? "");
+                bool hasKey = entry != null && entry.VirtualKey > 0;
+                _capturingBox.Text       = hasKey ? FormatBind(entry!.Modifiers, entry.VirtualKey) : "— unassigned —";
+                _capturingBox.Background = new WpfBrush(WpfColor.FromRgb(8, 20, 40));
+                _capturingBox.Foreground = hasKey
+                    ? new WpfBrush(WpfColor.FromRgb(0, 212, 255))
+                    : new WpfBrush(WpfColor.FromRgb(42, 75, 90));
+            }
+            FinishCapture();
+        }
+
+        private void FinishCapture()
+        {
+            this.PreviewKeyDown -= CaptureKeyDown;
+            _capturingActionId = null;
+            _capturingBox      = null;
+        }
+
+        private void KbClear_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not System.Windows.Controls.Button btn || btn.Tag is not string actionId) return;
+            CancelCapture();
+            _keybindSettings.ClearBind(actionId);
+            _keybindManager.Unregister(actionId);
+
+            var row = btn.Parent as Grid;
+            var box = row?.Children.OfType<System.Windows.Controls.TextBox>().FirstOrDefault();
+            if (box != null)
+            {
+                box.Text       = "— unassigned —";
+                box.Background = new WpfBrush(WpfColor.FromRgb(8, 20, 40));
+                box.Foreground = new WpfBrush(WpfColor.FromRgb(42, 75, 90));
+            }
+        }
+
+        /// <summary>Register a named action with KeybindManager using its callback.</summary>
+        private void RegisterHotkeyAction(string actionId, uint mod, uint vk)
+        {
+            Action? callback = actionId switch
+            {
+                "hide_overlays"       => (Action)ToggleAllOverlays,
+                "toggle_dps_overlay"  => () => Dispatcher.Invoke(() => DpsOverlay_Click(this, new RoutedEventArgs())),
+                "toggle_clickthrough" => (Action)ToggleClickThrough,
+                "toggle_persist"      => () => Dispatcher.Invoke(() => PersistOverlay_Click(this, new RoutedEventArgs())),
+                "scan_scorecard"      => () => Dispatcher.Invoke(() => { _ = ScanScorecardAsync(); }),
+                "toggle_sound"        => () => Dispatcher.Invoke(() => SoundToggle_Click(this, new RoutedEventArgs())),
+                "toggle_ontop"        => () => Dispatcher.Invoke(() => AlwaysOnTop_Click(this, new RoutedEventArgs())),
+                "reset_session"       => () => Dispatcher.Invoke(() => ClearSession_Click(this, new RoutedEventArgs())),
+                _ => null
+            };
+            if (callback == null) return;
+            _keybindManager.Register(actionId, mod, vk, callback);
+        }
+
+        private static string FormatBind(uint mod, uint vk)
+        {
+            if (vk == 0) return "— unassigned —";
+            var parts = new List<string>();
+            if ((mod & Mod.Ctrl)  != 0) parts.Add("Ctrl");
+            if ((mod & Mod.Shift) != 0) parts.Add("Shift");
+            if ((mod & Mod.Alt)   != 0) parts.Add("Alt");
+            parts.Add(VkToString(vk));
+            return string.Join("+", parts);
+        }
+
+        private static string VkToString(uint vk) => vk switch
+        {
+            0x08 => "Backspace", 0x09 => "Tab",    0x0D => "Enter",  0x1B => "Escape",
+            0x20 => "Space",     0x21 => "PgUp",   0x22 => "PgDn",   0x23 => "End",
+            0x24 => "Home",      0x25 => "Left",   0x26 => "Up",     0x27 => "Right",
+            0x28 => "Down",      0x2D => "Insert", 0x2E => "Delete",
+            0x30 => "0", 0x31 => "1", 0x32 => "2", 0x33 => "3", 0x34 => "4",
+            0x35 => "5", 0x36 => "6", 0x37 => "7", 0x38 => "8", 0x39 => "9",
+            0x41 => "A", 0x42 => "B", 0x43 => "C", 0x44 => "D", 0x45 => "E",
+            0x46 => "F", 0x47 => "G", 0x48 => "H", 0x49 => "I", 0x4A => "J",
+            0x4B => "K", 0x4C => "L", 0x4D => "M", 0x4E => "N", 0x4F => "O",
+            0x50 => "P", 0x51 => "Q", 0x52 => "R", 0x53 => "S", 0x54 => "T",
+            0x55 => "U", 0x56 => "V", 0x57 => "W", 0x58 => "X", 0x59 => "Y",
+            0x5A => "Z",
+            0x60 => "Num0", 0x61 => "Num1", 0x62 => "Num2", 0x63 => "Num3", 0x64 => "Num4",
+            0x65 => "Num5", 0x66 => "Num6", 0x67 => "Num7", 0x68 => "Num8", 0x69 => "Num9",
+            0x70 => "F1",  0x71 => "F2",  0x72 => "F3",  0x73 => "F4",
+            0x74 => "F5",  0x75 => "F6",  0x76 => "F7",  0x77 => "F8",
+            0x78 => "F9",  0x79 => "F10", 0x7A => "F11", 0x7B => "F12",
+            0xBA => ";",   0xBB => "=",   0xBC => ",",   0xBD => "-",
+            0xBE => ".",   0xBF => "/",   0xC0 => "`",   0xDB => "[",
+            0xDC => "\\",  0xDD => "]",   0xDE => "'",
+            _ => $"#{vk:X2}"
+        };
+
+        // ── End Keybinds tab ──────────────────────────────────────────────────────
+
         protected override void OnSourceInitialized(EventArgs e)
         {
             base.OnSourceInitialized(e);
-            // Boss-key: F9 hides/shows all overlays (no modifier = pure F9)
-            _hideAllHotkey = new GlobalHotkey(this, Mod.None, VKey.F9);
-            _hideAllHotkey.HotkeyPressed += ToggleAllOverlays;
-            // F10: scan the in-game Scorecard → group DPS
-            _scanScorecardHotkey = new GlobalHotkey(this, Mod.None, VKey.F10);
-            _scanScorecardHotkey.HotkeyPressed += () => Dispatcher.Invoke(() => { _ = ScanScorecardAsync(); });
-            // Ctrl+0: toggle overlay click-through (clicks pass to game vs. drag/configure overlay)
-            _clickThroughHotkey = new GlobalHotkey(this, Mod.Ctrl, VKey.D0);
-            _clickThroughHotkey.HotkeyPressed += ToggleClickThrough;
+            // All hotkeys are now user-configured in the KEYBINDS tab — no hardcoded defaults.
         }
 
         private void ToggleClickThrough()
@@ -1391,14 +1670,12 @@ namespace DCUOTracker
             } catch { }
             _settings.Save();
             Logger.Shutdown();
+            _keybindManager.Dispose();
             _dpsParser.Stop();
             _dpsParser.Dispose();
             _partyScanner.Dispose();
             _fgWatcher.Dispose();
             _watchdog.Dispose();
-            _hideAllHotkey?.Dispose();
-            _scanScorecardHotkey?.Dispose();
-            _clickThroughHotkey?.Dispose();
             _scorecardScanner.Dispose();
             _scorecardOverlay.Dispatcher.Invoke(() => { try { _scorecardOverlay.ForceClose(); } catch { } });
             _dpsOverlay.Dispatcher.Invoke(() => { try { _dpsOverlay.ForceClose(); } catch { } });

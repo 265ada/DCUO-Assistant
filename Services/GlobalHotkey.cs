@@ -27,15 +27,23 @@ namespace DCUOTracker.Services
         {
             _owner = owner;
             _id    = System.Threading.Interlocked.Increment(ref _nextId);
-            owner.Loaded             += OnLoaded;
-            owner.Closed             += (_, _) => Dispose();
             _pendingMod = modifiers;
             _pendingVk  = vk;
+            owner.Closed += (_, _) => Dispose();
+
+            // If the window is already loaded (e.g. live rebind after startup),
+            // register immediately rather than waiting for Loaded event.
+            if (owner.IsLoaded)
+                RegisterNow();
+            else
+                owner.Loaded += OnLoaded;
         }
 
         private uint _pendingMod, _pendingVk;
 
-        private void OnLoaded(object sender, RoutedEventArgs e)
+        private void OnLoaded(object sender, RoutedEventArgs e) => RegisterNow();
+
+        private void RegisterNow()
         {
             var helper = new WindowInteropHelper(_owner);
             _source    = HwndSource.FromHwnd(helper.Handle);

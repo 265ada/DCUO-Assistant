@@ -10,9 +10,9 @@
       <ApplicationIcon>dcuo-qol.ico</ApplicationIcon>
     <AssemblyName>DCUO-QualityOfLife</AssemblyName>
     <Product>DCUO Quality of Life</Product>
-    <Version>1.2.2</Version>
-    <AssemblyVersion>1.2.2</AssemblyVersion>
-    <FileVersion>1.2.2</FileVersion>
+    <Version>1.2.4</Version>
+    <AssemblyVersion>1.2.4</AssemblyVersion>
+    <FileVersion>1.2.4</FileVersion>
       <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
 

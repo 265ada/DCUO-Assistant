@@ -78,6 +78,7 @@ namespace DCUOTracker
 private System.Windows.Controls.ContextMenu _ctxMenu = null!;
 private System.Windows.Controls.MenuItem _miPowers = null!, _miWeapon = null!, _miSuper = null!;
 private System.Windows.Controls.MenuItem _miRoles = null!, _miPowerIcons = null!;
+private System.Windows.Controls.MenuItem _miZone = null!;
 
 private void BuildContextMenu()
 {
@@ -90,6 +91,11 @@ private void BuildContextMenu()
     _miPowerIcons = MakeMenuItem("Show Power Type Icons", true,  MenuShowPowerType_Click);
     var miCopy    = MakeMenuItem("Copy Parse to Clipboard", false, MenuCopyParse_Click);
     miCopy.Foreground = new WpfMedia.SolidColorBrush(WpfMedia.Color.FromRgb(0,212,255));
+    _miZone       = MakeMenuItem("Show Zone Totals (whole instance)", true, MenuZone_Click);
+    _miZone.IsChecked = false; // default to single-fight view
+    _miZone.Foreground = new WpfMedia.SolidColorBrush(WpfMedia.Color.FromRgb(124,252,0));
+    var miResetZone = MakeMenuItem("Reset Zone Totals", false, MenuResetZone_Click);
+    miResetZone.Foreground = new WpfMedia.SolidColorBrush(WpfMedia.Color.FromRgb(124,252,0));
     var miReset   = MakeMenuItem("Reset Fight",           false, MenuResetFight_Click);
     miReset.Foreground = new WpfMedia.SolidColorBrush(WpfMedia.Color.FromRgb(255,107,53));
 
@@ -99,6 +105,9 @@ private void BuildContextMenu()
     _ctxMenu.Items.Add(new System.Windows.Controls.Separator());
     _ctxMenu.Items.Add(_miRoles);
     _ctxMenu.Items.Add(_miPowerIcons);
+    _ctxMenu.Items.Add(new System.Windows.Controls.Separator());
+    _ctxMenu.Items.Add(_miZone);
+    _ctxMenu.Items.Add(miResetZone);
     _ctxMenu.Items.Add(new System.Windows.Controls.Separator());
     _ctxMenu.Items.Add(miCopy);
     _ctxMenu.Items.Add(miReset);
@@ -116,27 +125,38 @@ private static System.Windows.Controls.MenuItem MakeMenuItem(string header, bool
         // My character name — set from MainWindow so overlay can auto-select
         public string MyCharacterName { get; set; } = "";
 
+        // Zone/instance accumulator (cumulative across all fights) + toggle
+        private FightData? _zoneData;
+        private FightData? _rawFight;
+        private bool _showZone;
+        public Action? ResetZoneRequested;
+        public void UpdateZone(FightData? zone) => _zoneData = zone;
+
         public void UpdateFight(FightData fight)
         {
             Dispatcher.Invoke(() => {
-                _currentFight = fight;
-                string tag = fight.IsSparringParse ? "⊕ PARSE · " : "";
-                FightLabel.Text = $"{(fight.IsActive?"⚔":"✓")} {tag}{Trunc(fight.FightName, tag==""?20:14)}";
-                StatsPanel.Visibility = Visibility.Visible;
-                TotalDmgLabel.Text = Fmt(fight.TotalGroupDamage);
-                MaxHitLabel.Text   = $"Max: {Fmt(fight.MaxHit)}";
-                DurationLabel.Text = FmtT(fight.Duration);
-                RebuildList(fight);
+                _rawFight = fight;
+                // Display either the single fight or the whole-zone cumulative totals
+                var f = (_showZone && _zoneData != null) ? _zoneData : fight;
+                _currentFight = f;
 
-                // Pick the player to show. ALWAYS re-fetch the current fight's instance by name
+                string tag = _showZone ? "🗺 ZONE · " : (f.IsSparringParse ? "⊕ PARSE · " : "");
+                FightLabel.Text = $"{(f.IsActive?"⚔":"✓")} {tag}{Trunc(f.FightName, tag==""?20:14)}";
+                StatsPanel.Visibility = Visibility.Visible;
+                TotalDmgLabel.Text = Fmt(f.TotalGroupDamage);
+                MaxHitLabel.Text   = $"Max: {Fmt(f.MaxHit)}";
+                DurationLabel.Text = FmtT(f.Duration);
+                RebuildList(f);
+
+                // Pick the player to show. ALWAYS re-fetch the current instance by name
                 // so we never display stale data from a previous fight/character (power-swap fix).
                 PlayerStats? target = null;
-                if (_selectedPlayer != null && fight.Players.TryGetValue(_selectedPlayer.Name, out var cur))
-                    target = cur;                                   // re-fetch live instance
-                else if (!string.IsNullOrEmpty(MyCharacterName) && fight.Players.TryGetValue(MyCharacterName, out var me))
-                    target = me;                                    // my character
-                else if (fight.Players.Count > 0)
-                    target = fight.RankedByDamage.First();          // fallback: top damage = you
+                if (_selectedPlayer != null && f.Players.TryGetValue(_selectedPlayer.Name, out var cur))
+                    target = cur;
+                else if (!string.IsNullOrEmpty(MyCharacterName) && f.Players.TryGetValue(MyCharacterName, out var me))
+                    target = me;
+                else if (f.Players.Count > 0)
+                    target = f.RankedByDamage.First();
 
                 if (target != null)
                 {
@@ -275,6 +295,15 @@ private static System.Windows.Controls.MenuItem MakeMenuItem(string header, bool
                     $"MIGHT {(powerOnly + super):P0}  ·  SC {super:P0}  ·  PREC {weapon:P0}";
             }
 
+            // Healing (HPS) — only shown when you actually heal
+            if (p.TotalHealing > 0)
+            {
+                double hps = dur > 1 ? p.TotalHealing / dur : p.TotalHealing;
+                MyHealLabel.Text = $"✚ HEALING {Fmt(p.TotalHealing)}  ·  {Fmt((long)hps)}/s";
+                MyHealLabel.Visibility = Visibility.Visible;
+            }
+            else MyHealLabel.Visibility = Visibility.Collapsed;
+
             // Personal best (per power) — compare against snapshot taken at fight start
             string power = p.PowerType.ToString();
             string key   = (_currentFight?.StartTime.Ticks ?? 0) + "|" + power;
@@ -325,6 +354,17 @@ private static System.Windows.Controls.MenuItem MakeMenuItem(string header, bool
         private void MenuShowRoles_Click(object s, RoutedEventArgs e) { _showRoleIcons=_miRoles.IsChecked; if(_currentFight!=null) RebuildList(_currentFight); }
         private void MenuShowPowerType_Click(object s, RoutedEventArgs e) { _showPowerIcons=_miPowerIcons.IsChecked; if(_currentFight!=null) RebuildList(_currentFight); }
         private void MenuResetFight_Click(object s, RoutedEventArgs e) => ClearFight();
+        private void MenuZone_Click(object s, RoutedEventArgs e)
+        {
+            _showZone = _miZone.IsChecked;
+            if (_rawFight != null) UpdateFight(_rawFight); // re-render in the chosen mode
+        }
+        private void MenuResetZone_Click(object s, RoutedEventArgs e)
+        {
+            ResetZoneRequested?.Invoke();
+            _zoneData = null;
+            if (_rawFight != null) UpdateFight(_rawFight);
+        }
 
         // Copy a clean, shareable parse summary to the clipboard
         private void MenuCopyParse_Click(object s, RoutedEventArgs e)

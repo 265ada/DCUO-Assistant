@@ -1828,6 +1828,33 @@
                                            TextWrapping="Wrap" Margin="0,6,0,0"/>
                             </Grid>
                         </TabItem>
+                        <!-- ⌨ KEYBINDS TAB -->
+                        <TabItem Header="⌨  KEYBINDS" x:Name="TabKeybinds">
+                            <Grid Margin="16,12,16,12">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- Header -->
+                                <Border Grid.Row="0" Background="#07101E" BorderBrush="#0D2236"
+                                        BorderThickness="1" CornerRadius="5" Padding="14,8" Margin="0,0,0,12">
+                                    <StackPanel>
+                                        <TextBlock Text="⌨ GLOBAL HOTKEYS"
+                                                   Foreground="#00D4FF" FontFamily="Consolas"
+                                                   FontSize="12" FontWeight="Bold" Margin="0,0,0,3"/>
+                                        <TextBlock Text="Click [ASSIGN] then press any key combo. Escape to cancel. [CLEAR] removes the bind. All keys start unassigned — no defaults."
+                                                   Foreground="#5A7A9A" FontFamily="Consolas" FontSize="10" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Keybind rows (built in code-behind) -->
+                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                    <StackPanel x:Name="KeybindsPanel" Margin="0,0,0,8"/>
+                                </ScrollViewer>
+                            </Grid>
+                        </TabItem>
+
         </TabControl>
     </Grid>
 </Window>

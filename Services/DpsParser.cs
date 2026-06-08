@@ -45,6 +45,24 @@ namespace DCUOTracker.Services
 
         private FightData? _currentFight;
         private DateTime   _lastEventTime  = DateTime.MinValue;
+
+        // Zone/instance accumulator — totals across ALL fights in the run (not one encounter).
+        // No clean zone marker in the log, so it auto-resets after a long idle (left instance)
+        // and can be reset manually.
+        private const double ZONE_IDLE_RESET = 300.0; // 5 min of no combat = new zone
+        private FightData? _zoneFight;
+        private DateTime   _zoneLastEvent = DateTime.MinValue;
+        public FightData? ZoneFight => _zoneFight;
+        public void ResetZone() => _zoneFight = null;
+
+        private PlayerStats ZonePlayer(string source, DateTime eventTime)
+        {
+            if (_zoneFight != null && (eventTime - _zoneLastEvent).TotalSeconds > ZONE_IDLE_RESET)
+                _zoneFight = null; // long idle → fresh zone
+            _zoneFight ??= new FightData { FightName = "Zone", StartTime = eventTime, IsActive = true };
+            _zoneLastEvent = eventTime;
+            return _zoneFight.GetOrAdd(source);
+        }
         private DateTime   _lastPacketTime = DateTime.Now;
         private bool       _isStalled      = false;
         private DateTime   _lastSparkSample = DateTime.MinValue;
@@ -218,6 +236,9 @@ namespace DCUOTracker.Services
             var player = _currentFight!.GetOrAdd(source);
             player.AddHit(ability, dmg, crit, target, eventTime);
 
+            // Zone/instance accumulator
+            ZonePlayer(source, eventTime).AddHit(ability, dmg, crit, target, eventTime);
+
             // HIGH-2 fix: lock roll window
             lock (_histLock)
             {
@@ -269,9 +290,10 @@ namespace DCUOTracker.Services
             if (!m.Success) return;
             string source = JsonExtensions.TryGetProp(j, "inm") ?? m.Groups[1].Value;
             long   heal   = ParseValue(m.Groups[4].Value);
-            if (heal <= 0 || _currentFight == null) return;
+            if (heal <= 0) return;
             _lastEventTime = eventTime;
-            _currentFight.GetOrAdd(source).AddHeal(heal);
+            _currentFight?.GetOrAdd(source).AddHeal(heal);
+            ZonePlayer(source, eventTime).AddHeal(heal);   // zone/instance total
         }
 
         private void HandlePower(string text, JsonElement? j, DateTime eventTime)

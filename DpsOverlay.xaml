@@ -120,6 +120,12 @@
                     <TextBlock x:Name="MySplitLabel" Text="" Foreground="#7A8AA5"
                                FontSize="7.5" FontFamily="Consolas" HorizontalAlignment="Center"/>
 
+                    <!-- Healing (HPS) — shown only when you're healing -->
+                    <TextBlock x:Name="MyHealLabel" Text="" Foreground="#34D399"
+                               FontSize="10" FontWeight="Bold" FontFamily="Consolas"
+                               HorizontalAlignment="Center" Margin="0,3,0,0"
+                               Visibility="Collapsed"/>
+
                     <!-- Personal best vs current parse -->
                     <TextBlock x:Name="MyBestLabel" Text="" FontSize="9" FontWeight="Bold"
                                FontFamily="Consolas" HorizontalAlignment="Center"
